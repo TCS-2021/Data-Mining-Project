@@ -2,18 +2,18 @@ name: tests.yml
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v2
       with:
         python-version: '3.11'
 
@@ -51,7 +51,7 @@ jobs:
         
         echo "**Test Results**:" >> $GITHUB_STEP_SUMMARY
         echo "- Total Tests: ${TOTAL}" >> $GITHUB_STEP_SUMMARY
-        echo "- Passed: ${PASSED}" >> $GITHUB_STEP_SUMMARY
+        echo "-  Passed: ${PASSED}" >> $GITHUB_STEP_SUMMARY
         echo "- Failed: ${FAILED}" >> $GITHUB_STEP_SUMMARY
         echo "- Skipped: ${SKIPPED}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -60,7 +60,7 @@ jobs:
 
     - name: Upload test results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
         name: pytest-results
         path: |
