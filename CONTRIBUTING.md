@@ -1,4 +1,3 @@
-The document is under construction.
 
 We make an effort to follow the [Scikit-learn's contributing guidelines](https://scikit-learn.org/stable/developers/contributing.html) and [The Python Software Foundation's Code of Conduct](https://www.python.org/psf/codeofconduct/).
 
@@ -44,11 +43,11 @@ To maintain the quality of the codebase and ease the review process, any contrib
 3. Most importantly: Do not contribute code that you don’t understand.
 
 ### How to Contribute
-# Contributing to Data-Mining-Project
+#### Contributing to Data-Mining-Project
 
 The preferred way to contribute to this repository is to fork the main repository on GitHub, make your changes locally, and then submit a pull request (PR).
 
-## Getting Started
+#### Getting Started
 
 #### 1. Create a GitHub Account
 If you do not already have a GitHub account, please create one at [https://github.com](https://github.com).
@@ -64,3 +63,69 @@ Clone the forked repository to your local machine by running:
 git clone git@github.com:YourLogin/Data-Mining-Project.git
 cd Data-Mining-Project
 ```
+Alternatively, you can choose to form a Github team, work over there with your team and push in code whenever you think you've a stable program running or a new feature is added.
+
+#### 4. Install the development dependencies:
+```bash
+pip install pytest pytest-cov
+```
+
+#### 5. Add the upstream remote. 
+This saves a reference to the main repository, which you can use to keep your repository synchronized with the latest changes:
+```bash
+git remote add upstream git@github.com:TCS-2021/Data-Mining-Project.git
+```
+
+#### 6. Check that the upstream and origin remote aliases are configured correctly by running git remote -v which should display:
+
+```bash
+origin  git@github.com:YourLogin/Data-Mining-Project.git (fetch)
+origin  git@github.com:YourLogin/Data-Mining-Project.git (push)
+upstream        git@github.com:TCS-2021/Data-Mining-Project.git (fetch)
+upstream        git@github.com:TCS-2021/Data-Mining-Project.git (push)
+```
+
+The next steps now describe the process of modifying code and submitting a PR:
+
+#### 7. Synchronize your main branch with the upstream/main branch, more details on [GitHub Docs](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/syncing-a-fork):
+
+```bash
+git checkout main
+git fetch upstream
+git merge upstream/main
+```
+
+#### 8. Create a feature branch to hold your development changes:
+```bash
+git checkout -b my_feature
+```
+and start making changes. Always use a feature branch. It’s good practice to never work on the main branch!
+
+#### 9. Develop the feature on your feature branch on your computer, using Git to do the version control. When you’re done editing, add changed files using git add and then git commit:
+
+```bash
+git add modified_files
+git commit
+```
+to record your changes in Git, then push the changes to your GitHub account with:
+```bash
+git push -u origin my_feature
+```
+Follow [these](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork) instructions to create a pull request from your fork. This will send an notification to potential reviewers. You may want to consider sending an message in the https://github.com/TCS-2021/Data-Mining-Project/discussions/categories/pr-queries in the PR Queries channel for more visibility if your pull request does not receive attention after a couple of hours (instant replies are not guaranteed though).
+
+It is often helpful to keep your local feature branch synchronized with the latest changes of the main scikit-learn repository:
+
+```bash
+git fetch upstream
+git merge upstream/main
+```
+Subsequently, you might need to solve the conflicts. You can refer to the Git documentation related to resolving merge conflict using the command line related to resolving merge conflict using the command line.
+
+#### Learning Git
+
+The [Git documentation](https://git-scm.com/doc) and http://try.github.io are excellent resources to get started with git, and understanding all of the commands shown here.
+
+### Guide on making a good pr
+Please refer to[ this](https://scikit-learn.org/stable/developers/contributing.html#pull-request-checklist) on making a good pr.
+
+Please use the valid channel on [discussions tab](https://github.com/TCS-2021/Data-Mining-Project/discussions) for any other queries.
