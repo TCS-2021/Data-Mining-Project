@@ -7,6 +7,13 @@ TCS 2021's Class submission for the course Data Mining - 20XT83
 * NumPy: Version 2.2.0
 * Pandas: Version 2.0.0
 * Scikit-learn: Version 1.6.0
+* MLxtend: Version 0.23.0
+* GSPpy: Version 0.23.3
+* River: Version 0.22.0
+* Kafka: Version 2.0.4
+* Keras: Version 3.7.0
+* Tensorflow: Version 2.18.0
+* Pytorch: Version 2.5.1
 * Streamlit : Version 1.41.0
 
 ## Installation
@@ -63,3 +70,64 @@ Try achieving a coverage score >80.
 These checks help maintain code quality and consistency throughout the project. Pull requests failing these checks will need revision before merging.
 
 Please use the valid channel on [discussions tab](https://github.com/TCS-2021/Data-Mining-Project/discussions) for any other queries.
+
+## Guide: Creating a Branch and Working in Git
+
+### 1. Check the Current Branch
+Before creating a new branch, check your current branch:
+```sh
+git branch
+```
+
+### 2. Create a New Branch
+Use the following command to create a new branch:
+```sh
+git checkout -b my-feature-branch
+```
+OR
+```sh
+git switch -c my-feature-branch
+```
+This creates and switches to the new branch.
+
+### 3. Make Changes and Stage Them
+Edit your files, then stage them:
+```sh
+git add filename
+```
+Or stage all changes:
+```sh
+git add .
+```
+
+### 4. Commit the Changes (with a commit message)
+```sh
+git commit -m "Added new feature"
+```
+
+### 5. Push the Branch to Remote Repository
+Push the branch to GitHub:
+```sh
+git push origin my-feature-branch
+```
+
+### 6. Create a Pull Request (PR)
+1. Go to your GitHub repository.
+2. Click on **Pull Requests** → **New Pull Request**.
+3. Select your branch and compare it with `main`.
+4. Add a title, description, and submit the PR.
+
+### 7. Switch Back to `main` (If Needed)
+Once done, switch back to the main branch:
+```sh
+git switch main
+```
+OR  
+```sh
+git checkout main
+```
+Update it with the latest changes:
+```sh
+git pull origin main
+```
+
