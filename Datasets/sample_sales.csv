@@ -1,0 +1,5 @@
+surrogate_key,item_id,itemname,itemmanufacturer,itemprice,iteminventory,custid,custname,custaddr,custage,custphno,date,quarter,day,month,year,storeid,storeaddr,storecity,storezip,storestate,quantity,amount
+1,101,Laptop,Dell,20,10,201,John Doe,123 Main St,30,555-1234,01-10-2023,4,1,10,2023,302,456 Elm St,Springfield,12345,IL,5,50
+2,101,Laptop,Dell,20,10,202,Jane Smith,456 Oak St,25,555-5678,02-10-2023,4,2,10,2023,302,456 Elm St,Springfield,12345,IL,10,200
+3,102,Tablet,Samsung,30,20,202,Jane Smith,456 Oak St,25,555-5678,02-10-2023,4,2,10,2023,301,321 Birch St,Greenville,54321,NC,10,300
+4,103,Monitor,LG,20,40,203,Bob Brown,321 Cedar St,35,555-4321,04-10-2023,4,4,10,2023,301,321 Birch St,Greenville,54321,NC,5,100
