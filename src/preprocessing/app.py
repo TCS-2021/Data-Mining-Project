@@ -109,13 +109,10 @@ def smooth_data(data: pd.DataFrame) -> pd.DataFrame:
             # Apply selected smoothing technique
             if smoothing_method == "Moving Average":
                 data[f"{column}_smoothed"] = data[column].rolling(window=smoothing_window).mean()
-            
             elif smoothing_method == "Exponential":
                 data[f"{column}_smoothed"] = data[column].ewm(span=smoothing_window).mean()
-            
             elif smoothing_method == "Gaussian":
                 data[f"{column}_smoothed"] = gaussian_filter1d(data[column], sigma=smoothing_window / 3)
-            
             else:
                 loess_result = lowess(data[column], np.arange(len(data)), frac=smoothing_window / len(data))
                 data[f"{column}_smoothed"] = loess_result[:, 1]
@@ -152,10 +149,9 @@ def handle_outliers(data: pd.DataFrame) -> pd.DataFrame:
         # Get user input based on method
         if detection_method == "IQR":
             iqr_multiplier = st.slider("IQR Multiplier", 1.0, 5.0, 1.5)
-
+            
         elif detection_method in ["Z-Score", "Modified Z-Score"]:
-            threshold = st.slider("Threshold", 1.0, 5.0, 3.0)
-        
+            threshold = st.slider("Threshold", 1.0, 5.0, 3.0)        
         else:
             lower_percentile = st.slider("Lower percentile", 0.0, 10.0, 1.0)
             upper_percentile = st.slider("Upper percentile", 90.0, 100.0, 99.0)
@@ -398,7 +394,9 @@ def main():
             st.success(f"✅ Loaded {len(raw_data)} rows × {len(raw_data.columns)} columns")
 
             with st.expander("🔍 View Raw Data"):
-                st.dataframe(raw_data.style.highlight_null(color='#ffcccb'), height=300, use_container_width=True)
+                st.dataframe(
+                    raw_data.style.highlight_null(color='#ffcccb'), height=300, use_container_width=True
+                )
 
             with st.expander("📋 Column Summary", expanded=True):
                 column_summary = pd.DataFrame({
