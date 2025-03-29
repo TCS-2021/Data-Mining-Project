@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from sklearn.experimental import enable_iterative_imputer 
 from sklearn.impute import IterativeImputer
 from sklearn.tree import DecisionTreeRegressor
 from scipy.ndimage import gaussian_filter1d
@@ -67,7 +68,7 @@ def handle_missing_values(data: pd.DataFrame) -> pd.DataFrame:
                             else data[column].median() if strategy == "Median"
                             else data[column].mode()[0]
                         )
-                        data[column].fillna(imputed_value, inplace=True)
+                        data[column] = data[column].fillna(imputed_value)
                         st.write(f"Filled missing values in {column} with {strategy.lower()}: {imputed_value:.2f}")
                 else:
                     # Use regression or tree-based imputation
@@ -149,7 +150,7 @@ def handle_outliers(data: pd.DataFrame) -> pd.DataFrame:
         # Get user input based on method
         if detection_method == "IQR":
             iqr_multiplier = st.slider("IQR Multiplier", 1.0, 5.0, 1.5)
-            
+
         elif detection_method in ["Z-Score", "Modified Z-Score"]:
             threshold = st.slider("Threshold", 1.0, 5.0, 3.0)        
         else:
@@ -217,7 +218,7 @@ def analyse_variance(data: pd.DataFrame) -> pd.DataFrame:
     Returns the modified DataFrame (optionally filtered).
     """
     st.subheader("5. Variance Analysis")
-    with st.expander("Analyze Feature Variance", expanded=False):
+    with st.expander("Analyse Feature Variance", expanded=False):
         numeric_columns = data.select_dtypes(include=np.number).columns.tolist()
 
         if not numeric_columns:
@@ -422,9 +423,18 @@ def main():
             processed_data = handle_outliers(processed_data)
             processed_data = analyse_variance(processed_data)
 
+            # Downloading feature :  Preprocessed dataset
+            st.subheader("📥 Download Final Preprocessed Dataset")
+            csv_final = processed_data.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Download Final Dataset as CSV",
+                data=csv_final,
+                file_name="preprocessed_dataset.csv",
+                mime="text/csv"
+            )
+
         except Exception as error:
             st.error(f"Error loading file: {str(error)}")
-
 
 if __name__ == "__main__":
     main()
