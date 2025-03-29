@@ -4,6 +4,10 @@ import numpy as np
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
 from sklearn.tree import DecisionTreeRegressor
+from scipy.ndimage import gaussian_filter1d
+from statsmodels.nonparametric.smoothers_lowess import lowess
+import plotly.express as px
+
 
 # Configure page
 st.set_page_config(
@@ -95,9 +99,67 @@ def handle_missing_values(df):
         st.write(df.head())
     return df
 
+#Smooth data using various methods
+def smooth_data(df):
+    st.subheader("2. Smooth Data") 
+    with st.expander("Smooth Your Data"): 
+        
+        # Check for numeric columns 
+        numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+        if not numeric_cols:
+            st.error("Oops! No numeric columns found in your data!")
+            return df  
+
+        method = st.selectbox("Select smoothing method", [
+            "Moving Average",
+            "Exponential",
+            "Gaussian",
+            "LOESS"
+        ], key="smoothing_method")
+
+        # Window size selection for smoothing
+        window_size = st.slider(
+            "Smoothing amount:",
+            3,    # Minimum smoothing
+            15,   # Maximum smoothing
+            5,    # Default setting
+            key="smoothing_window"
+        )
+
+        # Process and preview
+        if st.button("See Preview", key="smoothing_preview"):
+            with st.spinner('Smoothing your data...'):
+                
+                # Apply smoothing to ALL numeric columns
+                for col in numeric_cols:
+                    if method == "Moving Average":
+                        df[f"{col}_smoothed"] = df[col].rolling(window=window_size).mean()
+                    elif method == "Exponential":
+                        df[f"{col}_smoothed"] = df[col].ewm(span=window_size).mean()
+                    elif method == "Gaussian":
+                        df[f"{col}_smoothed"] = gaussian_filter1d(df[col], sigma=window_size/3)
+                    else:  # LOESS
+                        smoothed = lowess(df[col], np.arange(len(df)), frac=window_size/len(df))
+                        df[f"{col}_smoothed"] = smoothed[:, 1]
+
+                # Store and show preview
+                st.session_state.smoothing_df = df.copy()
+                
+                st.write("Smoothed Data Preview:")
+                st.write(df.head())  
+            
+                fig = px.line(
+                    df,
+                    y=[f"{col}_smoothed" for col in numeric_cols],
+                    title="Your Smoothed Data Preview"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+    return df  
+
 def main():
     st.title("Data Preprocessing Tool")
-    
+
     # File upload section
     with st.container():
         st.subheader("1. Upload Your Data")
@@ -152,6 +214,9 @@ def main():
 
             # Handle missing values
             df = handle_missing_values(df)
+
+            # Smoothing data
+            df = smooth_data(df)
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
