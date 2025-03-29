@@ -101,7 +101,7 @@ def handle_missing_values(df):
 
 #Smooth data using various methods
 def smooth_data(df):
-    st.subheader("2. Smooth Data") 
+    st.subheader("3. Smooth Data") 
     with st.expander("Smooth Your Data"): 
         
         # Check for numeric columns 
@@ -126,36 +126,112 @@ def smooth_data(df):
             key="smoothing_window"
         )
 
-        # Process and preview
-        if st.button("See Preview", key="smoothing_preview"):
-            with st.spinner('Smoothing your data...'):
-                
-                # Apply smoothing to ALL numeric columns
-                for col in numeric_cols:
-                    if method == "Moving Average":
-                        df[f"{col}_smoothed"] = df[col].rolling(window=window_size).mean()
-                    elif method == "Exponential":
-                        df[f"{col}_smoothed"] = df[col].ewm(span=window_size).mean()
-                    elif method == "Gaussian":
-                        df[f"{col}_smoothed"] = gaussian_filter1d(df[col], sigma=window_size/3)
-                    else:  # LOESS
-                        smoothed = lowess(df[col], np.arange(len(df)), frac=window_size/len(df))
-                        df[f"{col}_smoothed"] = smoothed[:, 1]
+        with st.spinner('Smoothing your data...'):
+            # Apply smoothing to ALL numeric columns
+            for col in numeric_cols:
+                if method == "Moving Average":
+                    df[f"{col}_smoothed"] = df[col].rolling(window=window_size).mean()
+                elif method == "Exponential":
+                    df[f"{col}_smoothed"] = df[col].ewm(span=window_size).mean()
+                elif method == "Gaussian":
+                    df[f"{col}_smoothed"] = gaussian_filter1d(df[col], sigma=window_size/3)
+                else:  # LOESS
+                    smoothed = lowess(df[col], np.arange(len(df)), frac=window_size/len(df))
+                    df[f"{col}_smoothed"] = smoothed[:, 1]
 
-                # Store and show preview
-                st.session_state.smoothing_df = df.copy()
-                
-                st.write("Smoothed Data Preview:")
-                st.write(df.head())  
+            # Store and show preview
+            st.session_state.smoothing_df = df.copy()
             
-                fig = px.line(
-                    df,
-                    y=[f"{col}_smoothed" for col in numeric_cols],
-                    title="Your Smoothed Data Preview"
-                )
-                st.plotly_chart(fig, use_container_width=True)
+            st.write("Smoothed Data Preview:")
+            st.write(df.head())  
+        
+            fig = px.line(
+                df,
+                y=[f"{col}_smoothed" for col in numeric_cols],
+                title="Visualization of Smoothed Data"
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
     return df  
+
+def handle_outliers(df):
+    st.subheader("4. Handle Outliers")
+    with st.expander("Outlier Handling", expanded=False):
+        numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+
+        if not numeric_cols:
+            st.error("No numeric columns found!")
+            return df
+
+        col1, col2 = st.columns(2)
+        method = st.selectbox("Detection method:", ["IQR", "Z-Score", "Modified Z-Score", "Percentile"], key="detection_method")
+
+        if method == "IQR":
+            multiplier = st.slider("IQR multiplier:", 1.0, 5.0, 1.5)
+        elif method in ["Z-Score", "Modified Z-Score"]:
+            threshold = st.slider("Threshold value:", 1.0, 5.0, 3.0)
+        else:  # Percentile-based
+            col1, col2 = st.columns(2)
+            with col1:
+                lower_pct = st.slider("Lower percentile:", 0.0, 10.0, 1.0)
+            with col2:
+                upper_pct = st.slider("Upper percentile:", 90.0, 100.0, 99.0)
+
+        treatment = st.radio("Treatment method:", ["Remove", "Cap", "Replace with median"], horizontal=True)
+
+        with st.spinner('Processing...'):
+            total_outliers = 0
+            for col in numeric_cols:
+                if method == "IQR":
+                    q1 = df[col].quantile(0.25)
+                    q3 = df[col].quantile(0.75)
+                    iqr = q3 - q1
+                    lower_bound = q1 - (multiplier * iqr)
+                    upper_bound = q3 + (multiplier * iqr)
+                    outliers = df[(df[col] < lower_bound) | (df[col] > upper_bound)]
+                elif method == "Z-Score":
+                    z_scores = (df[col] - df[col].mean()) / df[col].std()
+                    outliers = df[np.abs(z_scores) > threshold]
+                elif method == "Modified Z-Score":
+                    median = df[col].median()
+                    mad = np.median(np.abs(df[col] - median))
+                    modified_z_scores = 0.6745 * (df[col] - median) / mad
+                    outliers = df[np.abs(modified_z_scores) > threshold]
+                else:  # Percentile-based
+                    lower_bound = df[col].quantile(lower_pct/100)
+                    upper_bound = df[col].quantile(upper_pct/100)
+                    outliers = df[(df[col] < lower_bound) | (df[col] > upper_bound)]
+
+                num_outliers = len(outliers)
+                total_outliers += num_outliers
+
+                if num_outliers > 0:
+                    if treatment == "Remove":
+                        df = df[~df.index.isin(outliers.index)]
+                    elif treatment == "Cap":
+                        if method in ["IQR", "Percentile"]:
+                            df[col] = np.where(df[col] > upper_bound, upper_bound,
+                                                    np.where(df[col] < lower_bound, lower_bound,
+                                                            df[col]))
+                        else:
+                            median_val = df[col].median()
+                            df[col] = np.where(np.abs((df[col] - median_val)/df[col].std()) > threshold,
+                                                    median_val, df[col])
+                    else:  # Replace with median
+                        median_val = df[col].median()
+                        df.loc[outliers.index, col] = median_val
+
+                    st.write(f"Would process {num_outliers} outliers in {col}")
+
+            st.write(f"Total outliers that would be processed: {total_outliers}")
+
+            st.write("Updated Preview:")
+            st.write(df.head())  
+        
+            fig = px.box(df, title="After Outlier Treatment Preview")
+            st.plotly_chart(fig, use_container_width=True)
+
+    return df
 
 def main():
     st.title("Data Preprocessing Tool")
@@ -213,10 +289,13 @@ def main():
                 """)
 
             # Handle missing values
-            df = handle_missing_values(df)
+            processed_df = handle_missing_values(df)
 
             # Smoothing data
-            df = smooth_data(df)
+            processed_df = smooth_data(processed_df)
+
+            # Handle outliers
+            processed_df = handle_outliers(processed_df)
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
