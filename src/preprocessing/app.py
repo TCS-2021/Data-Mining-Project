@@ -26,7 +26,6 @@ st.markdown("""
         border-radius: 5px;
     }
     .stExpander {
-        background: #f0f2f6;
         border-radius: 5px;
         padding: 10px;
     }
