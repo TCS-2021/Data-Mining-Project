@@ -7,6 +7,8 @@ from sklearn.tree import DecisionTreeRegressor
 from scipy.ndimage import gaussian_filter1d
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import plotly.express as px
+from sklearn.feature_selection import VarianceThreshold
+import plotly.graph_objects as go
 
 
 # Configure page
@@ -233,6 +235,174 @@ def handle_outliers(df):
 
     return df
 
+def analyze_variance(df):
+    st.subheader("5. Variance Analysis")
+    with st.expander("Analyze Feature Variance", expanded=False):
+        numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+        
+        if not numeric_cols:
+            st.error("No numeric columns found for variance analysis!")
+            return df
+        
+        # Calculate variance for all numeric columns
+        variance_df = pd.DataFrame({
+            'Feature': numeric_cols,
+            'Variance': [df[col].var() for col in numeric_cols],
+            'Std Dev': [df[col].std() for col in numeric_cols],
+            'Coefficient of Variation': [df[col].std() / df[col].mean() if df[col].mean() != 0 else np.nan for col in numeric_cols]
+        })
+        
+        # Sort by variance (descending)
+        variance_df = variance_df.sort_values('Variance', ascending=False).reset_index(drop=True)
+        
+        # Visualization tab and data tab
+        tab1, tab2 = st.tabs(["Visualization", "Data"])
+        
+        with tab1:
+            # Variance visualization
+            st.subheader("Feature Variance Distribution")
+            
+            # Bar chart for variances
+            fig = px.bar(
+                variance_df, 
+                x='Feature', 
+                y='Variance',
+                title="Feature Variance Comparison",
+                color='Variance',
+                color_continuous_scale='Viridis'
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Coefficient of variation chart (for features with different scales)
+            cv_df = variance_df.dropna(subset=['Coefficient of Variation'])
+            if not cv_df.empty:
+                fig2 = px.bar(
+                    cv_df,
+                    x='Feature',
+                    y='Coefficient of Variation',
+                    title="Coefficient of Variation (Higher values indicate more variability relative to mean)",
+                    color='Coefficient of Variation',
+                    color_continuous_scale='Viridis'
+                )
+                st.plotly_chart(fig2, use_container_width=True)
+        
+        with tab2:
+            # Show the variance data table
+            st.dataframe(variance_df, use_container_width=True)
+        
+        # Feature selection based on variance
+        st.subheader("Feature Selection")
+        
+        selection_method = st.radio(
+            "Selection method:", 
+            ["Variance Threshold", "Top N Features", "Manual Selection"],
+            horizontal=True
+        )
+        
+        if selection_method == "Variance Threshold":
+            # Variance threshold selection
+            min_variance = st.slider(
+                "Minimum variance threshold:",
+                min_value=0.0,
+                max_value=float(variance_df['Variance'].max()),
+                value=0.1,
+                step=0.05
+            )
+            
+            # Get features meeting the threshold
+            selected_features = variance_df[variance_df['Variance'] >= min_variance]['Feature'].tolist()
+            
+        elif selection_method == "Top N Features":
+            # Select top N features
+            n_features = st.slider(
+                "Number of top features to keep:",
+                min_value=1,
+                max_value=len(numeric_cols),
+                value=min(5, len(numeric_cols)),
+                step=1
+            )
+            
+            selected_features = variance_df.head(n_features)['Feature'].tolist()
+            
+        else:  # Manual selection
+            # Manual feature selection
+            selected_features = st.multiselect(
+                "Select features to keep:",
+                options=numeric_cols,
+                default=numeric_cols[:min(5, len(numeric_cols))]
+            )
+        
+        # Show selected features
+        if selected_features:
+            st.success(f"Selected {len(selected_features)} features based on variance analysis")
+            st.write("Selected features:")
+            st.write(", ".join(selected_features))
+            
+            # Option to create dataset with only selected features
+            if st.checkbox("Create dataset with only selected features"):
+                # Include non-numeric columns if desired
+                include_non_numeric = st.checkbox("Include non-numeric columns", value=True)
+                
+                if include_non_numeric:
+                    non_numeric_cols = [col for col in df.columns if col not in numeric_cols]
+                    all_selected_features = selected_features + non_numeric_cols
+                else:
+                    all_selected_features = selected_features
+                
+                # Create new dataframe with selected features
+                df_selected = df[all_selected_features].copy()
+                
+                # Show preview of selected features dataset
+                st.write("Preview of dataset with selected features:")
+                st.dataframe(df_selected.head(), use_container_width=True)
+                
+                # Option to download selected dataset
+                csv = df_selected.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    "Download selected features dataset",
+                    data=csv,
+                    file_name="selected_features_dataset.csv",
+                    mime="text/csv"
+                )
+                
+                # Update the original dataframe if requested
+                if st.checkbox("Update main dataset to only include selected features"):
+                    df = df_selected.copy()
+                    st.info("Main dataset updated to include only selected features")
+        else:
+            st.warning("No features selected. Please adjust your selection criteria.")
+            
+        # Feature correlation analysis for selected features
+        if len(selected_features) > 1:
+            st.subheader("Correlation Analysis for Selected Features")
+            corr_matrix = df[selected_features].corr()
+            
+            fig = px.imshow(
+                corr_matrix,
+                title="Correlation Matrix for Selected Features",
+                color_continuous_scale='RdBu_r',
+                zmin=-1, zmax=1,
+                width=700, height=600
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Identify highly correlated features
+            threshold = st.slider("Correlation threshold for highlighting:", 0.0, 1.0, 0.8, 0.05)
+            
+            # Create a mask for correlations above threshold (excluding self-correlations)
+            high_corr = corr_matrix.where(
+                (np.abs(corr_matrix) > threshold) & (np.abs(corr_matrix) < 1.0)
+            ).stack().reset_index()
+            high_corr.columns = ['Feature 1', 'Feature 2', 'Correlation']
+            
+            if not high_corr.empty:
+                st.write(f"Features with correlation above {threshold}:")
+                st.dataframe(high_corr.sort_values('Correlation', ascending=False), use_container_width=True)
+            else:
+                st.info(f"No feature pairs with correlation above {threshold} found.")
+    
+    return df
+
 def main():
     st.title("Data Preprocessing Tool")
 
@@ -296,6 +466,9 @@ def main():
 
             # Handle outliers
             processed_df = handle_outliers(processed_df)
+            
+            # Variance analysis
+            processed_df = analyze_variance(processed_df)
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
