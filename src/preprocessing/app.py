@@ -1,14 +1,11 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
 from sklearn.tree import DecisionTreeRegressor
 from scipy.ndimage import gaussian_filter1d
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import plotly.express as px
-from sklearn.feature_selection import VarianceThreshold
-import plotly.graph_objects as go
 
 
 # Configure page
