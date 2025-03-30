@@ -1,11 +1,15 @@
-import pandas as pd
 import numpy as np
-from unittest.mock import patch
+import os
+import pandas as pd
+import sys
 
-from src.Preprocessing.app import handle_missing_values
-from src.Preprocessing.app import smooth_data 
-from src.Preprocessing.app import handle_outliers 
-from src.Preprocessing.app import analyse_variance
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src")))
+
+from unittest.mock import patch
+from Preprocessing.app import handle_missing_values
+from Preprocessing.app import smooth_data 
+from Preprocessing.app import handle_outliers 
+from Preprocessing.app import analyse_variance
 
 
 def load_csv(file_name):
