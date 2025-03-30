@@ -79,6 +79,10 @@ def handle_missing_values(data: pd.DataFrame) -> pd.DataFrame:
                     data[numeric_columns] = imputer.fit_transform(data[numeric_columns])
                     st.write(f"{imputation_method} applied on numeric columns.")
 
+            else:
+                if imputation_method in ["Regression Imputation", "Decision Tree Imputation"]:
+                    st.warning(f"No numeric columns found. Skipping {imputation_method}.")
+
             # Fill categorical columns with mode
             categorical_columns = [col for col in columns_with_na if col not in numeric_columns]
             for column in categorical_columns:
