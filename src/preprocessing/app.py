@@ -86,7 +86,7 @@ def handle_missing_values(data: pd.DataFrame) -> pd.DataFrame:
                 data[column].fillna(mode_value, inplace=True)
                 st.write(f"Filled missing values in {column} with mode: {mode_value}")
 
-        st.write("Preview after missing value handling:")
+        st.write("**Preview after missing value handling:**")
         st.dataframe(data.head())
         return data
 
@@ -397,9 +397,11 @@ def main():
             st.success(f"✅ Loaded {len(raw_data)} rows × {len(raw_data.columns)} columns")
 
             with st.expander("🔍 View Raw Data"):
-                st.dataframe(
-                    raw_data.style.highlight_null(color='#ffcccb'), height=300, use_container_width=True
-                )
+                try:
+                    styled = raw_data.style.applymap(lambda v: 'background-color: #c94444' if pd.isna(v) else '')
+                    st.dataframe(styled, height=300, use_container_width=True)
+                except Exception:
+                    st.dataframe(raw_data, height=300, use_container_width=True)
 
             with st.expander("📋 Column Summary", expanded=True):
                 column_summary = pd.DataFrame({
