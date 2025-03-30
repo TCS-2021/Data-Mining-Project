@@ -87,7 +87,7 @@ def handle_missing_values(data: pd.DataFrame) -> pd.DataFrame:
             categorical_columns = [col for col in columns_with_na if col not in numeric_columns]
             for column in categorical_columns:
                 mode_value = data[column].mode()[0] if not data[column].mode().empty else ""
-                data[column].fillna(mode_value, inplace=True)
+                data[column] = data[column].fillna(mode_value)
                 st.write(f"Filled missing values in {column} with mode: {mode_value}")
 
         st.write("**Preview after missing value handling:**")
@@ -402,7 +402,7 @@ def main():
 
             with st.expander("🔍 View Raw Data"):
                 try:
-                    styled = raw_data.style.applymap(lambda v: 'background-color: #c94444' if pd.isna(v) else '')
+                    styled = raw_data.style.map(lambda v: 'background-color: #c94444' if pd.isna(v) else '')
                     st.dataframe(styled, height=300, use_container_width=True)
                 except Exception:
                     st.dataframe(raw_data, height=300, use_container_width=True)
