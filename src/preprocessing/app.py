@@ -124,7 +124,9 @@ def smooth_data(data: pd.DataFrame) -> pd.DataFrame:
         st.dataframe(data.head())
 
         # Plot all smoothed columns
-        fig = px.line(data, y=[f"{column}_smoothed" for column in numeric_columns], title="Smoothed Data Visualization")
+        smoothed_cols = [f"{col}_smoothed" for col in numeric_columns if f"{col}_smoothed" in data.columns]
+        fig = px.line(data[smoothed_cols], title="Smoothed Data Visualization")
+
         st.plotly_chart(fig, use_container_width=True)
         return data
 
@@ -205,7 +207,7 @@ def handle_outliers(data: pd.DataFrame) -> pd.DataFrame:
         st.dataframe(data.head())
 
         # Show box plot for updated data
-        fig = px.box(data, title="Box Plot After Outlier Treatment")
+        fig = px.box(data.select_dtypes(include=np.number), title="Box Plot After Outlier Treatment")
         st.plotly_chart(fig, use_container_width=True)
         return data
 
