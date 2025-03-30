@@ -43,3 +43,4 @@ for msg in consumer:
     
     # current model stats 
     print(f"Model stats: {model.summary}")
+    print("\n")

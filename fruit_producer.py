@@ -15,12 +15,12 @@ data_samples = [
     {"Weight": 2, "Colour": 3, "Label": 1},  
     {"Weight": 3, "Colour": 2, "Label": 2},  
     {"Weight": 1, "Colour": 3, "Label": 1},  
-    {"Weight": 2, "Colour": 2, "Label": 2}, 
-    {"Weight": 3, "Colour": 2, "Label": 2},  
+    {"Weight": 2, "Colour": 2, "Label": 2},  
     {"Weight": 1, "Colour": 2, "Label": 2},  
     {"Weight": 3, "Colour": 1, "Label": 1},
     {"Weight": 2, "Colour": 1, "Label": 1},
     {"Weight": 3, "Colour": 3, "Label": 1}
+
 ]
 
 print("Starting producer...")
@@ -30,7 +30,6 @@ for sample in data_samples:
     
     producer.send('fruit', message)
     print(f"Sent: Weight={sample['Weight']}, Colour={sample['Colour']}, Label={sample['Label']}")
-    print("\n")
     time.sleep(6)
 
 producer.flush()
