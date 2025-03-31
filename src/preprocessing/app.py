@@ -43,7 +43,7 @@ def handle_missing_values(data: pd.DataFrame) -> pd.DataFrame:
             return data
 
         columns_with_na = data.columns[data.isna().any()].tolist()
-        numeric_columns = data.select_dtypes(include=np.number).columns.tolist()
+        numeric_columns = [col for col in data.select_dtypes(include=np.number).columns.tolist() if col in columns_with_na]
 
         # Select method for imputation
         imputation_method = st.selectbox("Select imputation method", [
@@ -89,7 +89,7 @@ def handle_missing_values(data: pd.DataFrame) -> pd.DataFrame:
                                 # Offer mean or median for continuous data
                                 strategy = st.radio(
                                 f"Select strategy for {column} (continuous data)",
-                                ["Mean", "Median"],
+                                ["Median", "Mean"],
                                 horizontal=True
                                 )
                                 imputed_value = (
@@ -118,8 +118,7 @@ def handle_missing_values(data: pd.DataFrame) -> pd.DataFrame:
                     st.write(f"{imputation_method} applied on numeric columns.")
 
             else:
-                if imputation_method in ["Regression Imputation", "Decision Tree Imputation"]:
-                    st.warning(f"No numeric columns found. Skipping {imputation_method}.")
+                st.warning(f"No missing value is found in numeric columns.")
 
             # Fill categorical columns with mode
             categorical_columns = [col for col in columns_with_na if col not in numeric_columns]
