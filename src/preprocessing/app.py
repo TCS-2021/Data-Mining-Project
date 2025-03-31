@@ -60,16 +60,54 @@ def handle_missing_values(data: pd.DataFrame) -> pd.DataFrame:
             if numeric_columns:
                 if imputation_method == "Simple Imputation (Mean/Median/Mode)":
                     strategy = st.selectbox("Select strategy", ["Mean", "Median", "Mode"])
+
+                    if strategy == "Mode":
+                        # Determine threshold based on dataset size
+                        total_rows = len(data)
+                        if total_rows < 100:
+                            threshold = 0.05  # 5% for small datasets (< 100 rows)
+                        elif total_rows < 1000:
+                            threshold = 0.10  # 10% for medium datasets (100–999 rows)
+                        else:
+                            threshold = 0.15
+
+                        # Check if data has few unique values or strong central tendency
+                        for column in numeric_columns:
+                            unique_values = data[column].nunique()
+                            total_values = len(data[column].dropna())
+                            unique_ratio = unique_values / total_values if total_values > 0 else 0
+
+                            # If less than 10% unique values, assume discrete with central tendency
+                            if unique_ratio < threshold:
+                                # Can use mode imputation
+                                strategy = "Mode"
+                                imputed_value = data[column].mode()[0]
+                                data[column] = data[column].fillna(imputed_value)
+                                st.write(f"Filled missing values in {column} with mode (discrete data): {imputed_value:.2f}")
+
+                            else:
+                                # Offer mean or median for continuous data
+                                strategy = st.radio(
+                                f"Select strategy for {column} (continuous data)",
+                                ["Mean", "Median"],
+                                horizontal=True
+                                )
+                                imputed_value = (
+                                    data[column].mean() if strategy == "Mean"
+                                    else data[column].median()
+                                )
+                                data[column] = data[column].fillna(imputed_value)
+                                st.write(f"Filled missing values in {column} with {strategy.lower()}: {imputed_value:.2f}")
                     
-                    for column in numeric_columns:
-                        # Compute value based on strategy
-                        imputed_value = (
-                            data[column].mean() if strategy == "Mean"
-                            else data[column].median() if strategy == "Median"
-                            else data[column].mode()[0]
-                        )
-                        data[column] = data[column].fillna(imputed_value)
-                        st.write(f"Filled missing values in {column} with {strategy.lower()}: {imputed_value:.2f}")
+                    else:
+                        for column in numeric_columns:
+                            # Compute value based on strategy
+                            imputed_value = (
+                                data[column].mean() if strategy == "Mean"
+                                else data[column].median()
+                            )
+                            data[column] = data[column].fillna(imputed_value)
+                            st.write(f"Filled missing values in {column} with {strategy.lower()}: {imputed_value:.2f}")
                 else:
                     # Use regression or tree-based imputation
                     imputer = IterativeImputer(
