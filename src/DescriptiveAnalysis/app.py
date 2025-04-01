@@ -1,22 +1,55 @@
-"""Module containing data processing functions for the data warehouse application."""
+"""Module containing data processing functions for the"
+" data warehouse application with Batch Processing."""
 import itertools
+import time
+import io
+import zipfile
+import base64
+import math
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 
-# Custom CSS for styling
+st.set_page_config(
+    layout="wide",
+)
+
+# Custom CSS for a fancy and modern look
 st.markdown("""
     <style>
-    .main-container { padding: 1rem; }
-    .stButton>button { width: 100%; }
-    .dimension-box { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 5px; }
-    .section-title { margin-top: 1.5rem; margin-bottom: 0.5rem; }
-    .tab-content { padding-top: 1rem; }
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap');
+
+    html, body {
+        background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+        font-family: 'Montserrat', sans-serif;
+        color: #333;
+    }
+    .main-container {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        margin: 1rem;
+    }
+
+    .css-1e5imcs, .css-1d391kg {
+        background-color: #ffffff !important;
+        border-radius: 8px;
+        box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+        padding: 1rem;
+    }
+    .css-1aumxhk {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    .css-1d391kg .stTabs {
+        background-color: #fff;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 def create_data_cube(df: pd.DataFrame, dimensions: list, measures: list) -> pd.DataFrame:
     """Create a data cube by grouping data by dimensions and aggregating measures."""
-    # Check if all dimensions and measures exist in the DataFrame
     missing_dims = [dim for dim in dimensions if dim not in df.columns]
     missing_measures = [measure for measure in measures if measure not in df.columns]
     if missing_dims:
@@ -61,18 +94,18 @@ def configure_dimensions(all_columns: list) -> dict:
                 value=f"dim_{i+1}",
                 key=f"dim_name_{i}"
             )
-            # First select all dimension columns
             available_cols = [
                 col for col in all_columns
-                if col not in [c for dim in dimension_tables.values()
-                            for c in dim.get('columns', [])]
+                if( col not in
+                    [c for dim in dimension_tables.values()
+                    for c in dim.get('columns', [])]
+                )
             ]
             selected_cols = st.multiselect(
                 "Select Dimension Columns",
                 available_cols,
                 key=f"dim_cols_{i}"
             )
-            # Then separately select hierarchy columns in order
             if selected_cols:
                 st.write("Configure Hierarchy Levels (Select one column at a time in order):")
                 hierarchy = []
@@ -81,7 +114,6 @@ def configure_dimensions(all_columns: list) -> dict:
                     remaining_cols = [col for col in selected_cols if col not in hierarchy]
                     if not remaining_cols:
                         break
-                    # For each level, show only columns not already in hierarchy
                     level_col = st.selectbox(
                         f"Hierarchy Level {level} (Select from remaining columns)",
                         [None] + remaining_cols,
@@ -91,10 +123,9 @@ def configure_dimensions(all_columns: list) -> dict:
                         break
                     hierarchy.append(level_col)
                     level += 1
-                    # Option to add more levels
                     if not st.checkbox(f"Add another hierarchy level for Dimension {i+1}",
-                                      value=True,
-                                      key=f"add_level_{i}_{level}"):
+                                       value=True,
+                                       key=f"add_level_{i}_{level}"):
                         break
             else:
                 hierarchy = []
@@ -109,7 +140,6 @@ def configure_dimensions(all_columns: list) -> dict:
                     'primary_key': primary_key,
                     'hierarchy': hierarchy
                 }
-                # Show the configured hierarchy
                 if hierarchy:
                     st.write("Configured Hierarchy:")
                     st.write(" → ".join(hierarchy))
@@ -140,29 +170,33 @@ def display_results(
     fact_df: pd.DataFrame,
     fact_measures: list
 ):
-    """Display generated tables and data cubes."""
+    """Display generated tables and data cubes in tabs."""
     with st.expander("Generated Tables", expanded=True):
         for dim_name, config in dimension_tables.items():
             st.write(f"**{dim_name}**")
-            dim_df = df[config['columns']].drop_duplicates()
-            st.dataframe(dim_df, height=200)
+            st.dataframe(df[config['columns']].drop_duplicates(), height=200)
         st.write("**Fact Table**")
         st.dataframe(fact_df, height=200)
 
     with st.expander("Data Cubes", expanded=True):
-        dim_keys = list(dimension_tables.keys())
-        for n in range(1, len(dim_keys) + 1):
-            st.write(f"**{n}D Cubes**")
-            dim_combinations = list(itertools.combinations(dim_keys, n))
-            for combo in dim_combinations:
-                dim_columns = [
-                    dimension_tables[dim_name]['primary_key']
-                    for dim_name in combo
-                ]
-                cube = create_data_cube(fact_df, dim_columns, fact_measures)
-                if not cube.empty:
-                    st.write(f"Cube: {', '.join(combo)}")
-                    st.dataframe(cube, height=200)
+        # Generate cubes using the helper function
+        all_cubes = generate_data_cubes(fact_df, dimension_tables, fact_measures)
+        if all_cubes:
+            tabs = st.tabs(list(all_cubes.keys()))
+            for tab, (cube_name, cube) in zip(tabs, all_cubes.items()):
+                with tab:
+                    st.write(f"**{cube_name} Cube**")
+                    st.dataframe(cube, height=400)
+                    csv = cube.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label=f"Download {cube_name} as CSV",
+                        data=csv,
+                        file_name=f'cube_{cube_name.replace(" × ", "_")}.csv',
+                        mime='text/csv',
+                        key=f'dl_{cube_name}'
+                    )
+        else:
+            st.warning("No cubes were generated. Please check your configuration.")
 
 def olap_operations(fact_df: pd.DataFrame,
                     dimension_tables: dict,
@@ -176,7 +210,6 @@ def olap_operations(fact_df: pd.DataFrame,
     if not fact_measures:
         st.warning("No measures configured. Please set up measures first.")
         return
-    # Select dimension for Drill-Down and Roll-Up
     selected_dim = st.selectbox(
         "Select Dimension for Drill-Down and Roll-Up",
         list(dimension_tables.keys()),
@@ -189,18 +222,14 @@ def olap_operations(fact_df: pd.DataFrame,
             "Add more columns to the dimension to enable drill-down/roll-up."
         )
         return
-    # Select measure for Drill-Down and Roll-Up
     selected_measure = st.selectbox(
         "Select Measure",
         fact_measures,
         key="olap_measure"
     )
-    # Get current level from session state or set to highest level
     if 'current_level' not in st.session_state:
         st.session_state.current_level = 0
-    # Get the dimension data
     dim_df = original_df[dim_config['columns']].drop_duplicates()
-    # Merge fact table with dimension table to get all hierarchy levels
     merged_df = pd.merge(
         fact_df,
         dim_df,
@@ -208,17 +237,14 @@ def olap_operations(fact_df: pd.DataFrame,
         right_on=dim_config['primary_key'],
         how='left'
     )
-    # Get current hierarchy column
     current_level_col = dim_config['hierarchy'][st.session_state.current_level]
     st.write(f"**Current Level:** {current_level_col}")
-    # Create a cube at the current level (only showing hierarchy column and measure)
     cube = merged_df.groupby([current_level_col]).agg({selected_measure: 'sum'}).reset_index()
     if not cube.empty:
         st.dataframe(cube[[current_level_col, selected_measure]], height=300)
-    # Drill-down and Roll-up buttons
     col1, col2 = st.columns(2)
     with col1:
-        if (st.button("Drill Down") and
+        if( st.button("Drill Down") and
             st.session_state.current_level < len(dim_config['hierarchy']) - 1):
             st.session_state.current_level += 1
             st.rerun()
@@ -226,12 +252,145 @@ def olap_operations(fact_df: pd.DataFrame,
         if st.button("Roll Up") and st.session_state.current_level > 0:
             st.session_state.current_level -= 1
             st.rerun()
-    # Display hierarchy path
     hierarchy_path = " → ".join(
         [f"**{level}**" if i == st.session_state.current_level else level
          for i, level in enumerate(dim_config['hierarchy'])]
     )
     st.write(f"**Hierarchy Path:** {hierarchy_path}")
+
+def generate_data_cubes(fact_df: pd.DataFrame, dimension_tables: dict, fact_measures: list) -> dict:
+    """Generate all possible data cubes and return as a dictionary."""
+    all_cubes = {}
+    dim_keys = list(dimension_tables.keys())
+    for n in range(1, len(dim_keys)+1):
+        dim_combinations = list(itertools.combinations(dim_keys, n))
+        for combo in dim_combinations:
+            dim_columns = [dimension_tables[dim_name]['primary_key'] for dim_name in combo]
+            cube = create_data_cube(fact_df, dim_columns, fact_measures)
+            if not cube.empty:
+                cube_name = " × ".join(combo)
+                all_cubes[cube_name] = cube
+    return all_cubes
+
+def package_batch(batch_cubes, batch_number):
+    """Package a batch of cubes into a zip file and return its base64 string and filename."""
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for cube_name, cube in batch_cubes:
+            csv_data = cube.to_csv(index=False)
+            filename = f"cube_{cube_name.replace(' × ', '_')}.csv"
+            zf.writestr(filename, csv_data)
+    zip_data = zip_buffer.getvalue()
+    zip_data_base64 = base64.b64encode(zip_data).decode('utf-8')
+    zip_filename = f"data_cubes_batch_{batch_number}.zip"
+    return zip_data_base64, zip_filename
+
+def download_zip_files(cubes, batch_size):
+    """Package cubes into multiple zip files based on the batch size and trigger downloads."""
+    cube_items = list(cubes.items())
+    num_batches = math.ceil(len(cube_items) / batch_size)
+    # Package batches using a list comprehension
+    zip_files = [package_batch(cube_items[i * batch_size:(i + 1) * batch_size], i + 1)
+                 for i in range(num_batches)]
+    # Build HTML with JavaScript to trigger the downloads
+    download_html = "<html><body><script>"
+    for zip_data_base64, zip_filename in zip_files:
+        download_html += f"""
+        var a = document.createElement('a');
+        a.href = "data:application/zip;base64,{zip_data_base64}";
+        a.download = "{zip_filename}";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        """
+    download_html += """
+        document.write('<p style="font-weight:600; color:#28a745;">Data cubes are downloaded in batches.</p>');
+        </script></body></html>
+    """
+    components.html(download_html, height=150)
+
+
+def manage_timer_controls(chosen_minutes):
+    """Handle the Schedule, Stop, and Restart buttons for the timer."""
+    col1, col2, col3 = st.columns(3)
+    if col1.button("Schedule"):
+        st.session_state.batch_running = True
+        st.session_state.batch_total_seconds = chosen_minutes * 60
+        st.session_state.batch_remaining_seconds = st.session_state.batch_total_seconds
+    if col2.button("Stop Schedule"):
+        st.session_state.batch_running = False
+    if col3.button("Restart Schedule"):
+        st.session_state.batch_running = True
+        st.session_state.batch_remaining_seconds = chosen_minutes * 60
+
+def countdown_timer(placeholder):
+    """Display the countdown and update the timer."""
+    placeholder.write(f"**Time left:** {st.session_state.batch_remaining_seconds} seconds")
+    time.sleep(1)
+    st.session_state.batch_remaining_seconds -= 1
+    st.rerun()
+
+def process_download(batch_size):
+    """Generate data cubes and trigger the download of zip files."""
+    cubes = generate_data_cubes(
+        st.session_state.fact_df,
+        st.session_state.dimension_tables,
+        st.session_state.fact_measures
+    )
+    if cubes:
+        download_zip_files(cubes, batch_size)
+    else:
+        st.error("No data cubes generated. Please check your configuration.")
+
+def batch_processing():
+    """Handle scheduled batch processing for downloading data cubes."""
+    st.header("Batch Processing: Scheduled Data Cube Download")
+    if ('fact_df' not in st.session_state or
+        'dimension_tables' not in st.session_state or
+        'fact_measures' not in st.session_state):
+        st.warning("Please generate the data warehouse first in the Setup tab.")
+        return
+
+    # Get schedule time
+    schedule_option = st.selectbox("Select Schedule Time",
+                                   ["1 min", "2 min", "5 min", "Custom"],
+                                   key="batch_schedule_option")
+    if schedule_option == "Custom":
+        chosen_minutes = st.number_input("Enter number of minutes",
+                                         min_value=1, value=1,
+                                         key="batch_custom_time")
+    else:
+        chosen_minutes = int(schedule_option.split()[0])
+    st.write(f"Scheduled time: **{chosen_minutes} minute(s)**")
+
+    # Get batch size input
+    batch_size = st.number_input("Batch Size (Number of data cubes per zip)",
+                                 min_value=1, value=1,
+                                 key="batch_size")
+
+    # Initialize timer variables if not already set
+    if "batch_total_seconds" not in st.session_state:
+        st.session_state.batch_total_seconds = chosen_minutes * 60
+        st.session_state.batch_remaining_seconds = st.session_state.batch_total_seconds
+        st.session_state.batch_running = False
+
+    # Manage timer control buttons
+    manage_timer_controls(chosen_minutes)
+    placeholder = st.empty()
+
+    # Countdown logic with automatic download and timer restart
+    if st.session_state.batch_running:
+        if st.session_state.batch_remaining_seconds > 0:
+            countdown_timer(placeholder)
+        else:
+            st.session_state.batch_running = False
+            placeholder.write("Time is up. Downloading data cubes...")
+            process_download(batch_size)
+            st.session_state.batch_running = True
+            st.session_state.batch_remaining_seconds = st.session_state.batch_total_seconds
+            st.rerun()
+    else:
+        placeholder.write("Batch processing is stopped.")
 
 def main():
     """Main function to run the Streamlit application."""
@@ -242,13 +401,12 @@ def main():
     if data_frame is None:
         return
 
-    # Create tabs
-    tab1, tab2 = st.tabs(["Data Warehouse Setup", "Drill-Down and Roll-Up"])
+    # Create three tabs: Setup, OLAP Operations, and Batch Processing
+    tab1, tab2, tab3 = st.tabs(["Data Warehouse Setup",
+                                "Drill-Down and Roll-Up",
+                                "Batch Processing"])
     with tab1:
-        # Layout for first tab
         col1, col2 = st.columns([1, 2])
-
-        # Configure dimensions and fact table
         with col1:
             dimension_tables = configure_dimensions(all_columns)
         with col2:
@@ -257,7 +415,6 @@ def main():
                 try:
                     fact_df = data_frame[fact_table_cols]
                     display_results(data_frame, dimension_tables, fact_df, fact_measures)
-                    # Store in session state for Drill-Down and Roll-Up
                     st.session_state.fact_df = fact_df
                     st.session_state.dimension_tables = dimension_tables
                     st.session_state.fact_measures = fact_measures
@@ -266,13 +423,13 @@ def main():
     with tab2:
         if 'fact_df' in st.session_state:
             olap_operations(st.session_state.fact_df,
-            st.session_state.dimension_tables,
-            st.session_state.fact_measures,
-            data_frame
-        )
+                            st.session_state.dimension_tables,
+                            st.session_state.fact_measures,
+                            data_frame)
         else:
             st.warning("Please generate the data warehouse first in the Setup tab.")
+    with tab3:
+        batch_processing()
 
 if __name__ == "__main__":
     main()
-    
