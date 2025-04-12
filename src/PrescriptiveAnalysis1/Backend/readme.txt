@@ -1,14 +1,33 @@
-File: "example1.csv"
-This is the example question given in sir's ppt
-min_support = 0.5
+-APRIORI GRAPH DATA MINING
+----------------------------------------------------------------------------------------------------
+-Min Support can be changed dynamically using a slider for all datasets
+
+File: "data1.txt"
+Example question given in sir's ppt 
+Min Support = 2 
 (Answer cross-checked)
 
+File: "data2.txt"
+Random dataset containing 3 Graphs
+
+File: "data3.txt"
+Random dataset containing 4 Graphs
+----------------------------------------------------------------------------------------------------
+
+
+-GSP
+----------------------------------------------------------------------------------------------------
+File: "example1.csv"
+This is the example question given in sir's ppt
+Min Support = 0.5
+(Answer cross-checked)
 
 File: "example2.csv"
 This is the exercise question given in sir's ppt (with answer)
-min_support = 0.25
+Min Support = 0.25
 (Answer cross-checked)
 
 File: "groceries_own.csv"
-Randomly created this dataset for checking 
-min_support = 0.2 / 0.3 / 0.4
+Random Dataset 
+Min Support = 0.2 / 0.3 / 0.4
+----------------------------------------------------------------------------------------------------
