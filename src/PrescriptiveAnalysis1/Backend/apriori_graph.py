@@ -1,4 +1,3 @@
-import streamlit as st
 import pandas as pd
 from itertools import combinations
 
@@ -77,11 +76,9 @@ def apriori_graph_mining(graphs, min_support):
             # For k > 2, combine (k-1)-edge subgraphs with 1-edges
             for edge_set in frequent_k_minus_1:
                 for edge in frequent_1_edges:
-
                     if edge in edge_set:
                         continue
                     new_edge_set = edge_set + [edge]
-
                     edge_set_tuple = tuple(sorted(new_edge_set))
                     if edge_set_tuple in candidate_k_edge:
                         continue
@@ -106,32 +103,3 @@ def apriori_graph_mining(graphs, min_support):
         k += 1
 
     return tables, frequent_edge_sets
-
-def apriori_graph_mining_app():
-    st.title("Apriori-Based Graph Mining")
-
-    uploaded_file = st.file_uploader("Upload your graph dataset file ", type=['txt'])
-
-    if uploaded_file is not None:
-        graphs = parse_graph_file(uploaded_file)
-        st.write(f"Number of graphs loaded: {len(graphs)}")
-
-        min_support = st.slider("Minimum Support", 1, len(graphs), 2)
-
-        tables, frequent_edge_sets = apriori_graph_mining(graphs, min_support)
-
-        for k in range(len(tables)):
-            if tables[k]:  
-                st.header(f"{k+1}-Edge Frequent Subgraphs")
-                df_k_edge = pd.DataFrame(tables[k])
-                st.dataframe(df_k_edge)
-                if frequent_edge_sets[k]:
-                    st.write(f"Frequent {k+1}-edge sub-graphs: {['[' + ', '.join([f'({e[0]}, {e[1]})' for e in edge_set]) + ']' for edge_set in frequent_edge_sets[k]]}")
-                else:
-                    st.write(f"No frequent {k+1}-edge sub-graphs found.")
-    else:
-        st.write("Please upload a graph dataset file to proceed.")
-
-
-if __name__ == "__main__":
-    apriori_graph_mining_app()
