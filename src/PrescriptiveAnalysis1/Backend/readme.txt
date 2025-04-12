@@ -12,6 +12,24 @@ Random dataset containing 3 Graphs
 
 File: "data3.txt"
 Random dataset containing 4 Graphs
+
+The file content has to be of the format 
+# Graph <Number1>
+//edges to be specified in the format
+<Node1> <Node2>
+<Node2> <Node3>
+.
+.
+.
+.
+.
+# Graph <Number2>
+<Node1> <Node2>
+<Node2> <Node3>
+.
+.
+.
+. and so on
 ----------------------------------------------------------------------------------------------------
 
 
