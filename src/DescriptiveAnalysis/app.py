@@ -258,6 +258,7 @@ def olap_operations(fact_df: pd.DataFrame,
     )
     st.write(f"**Hierarchy Path:** {hierarchy_path}")
 
+@st.cache_data
 def generate_data_cubes(fact_df: pd.DataFrame, dimension_tables: dict, fact_measures: list) -> dict:
     """Generate all possible data cubes and return as a dictionary."""
     all_cubes = {}
