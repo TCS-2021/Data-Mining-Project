@@ -12,7 +12,7 @@ from src.preprocessing.app import analyse_variance
 from unittest.mock import patch
 
 def load_csv(file_name):
-    return pd.read_csv(f"datasets/preprocessing/test_csvs/{file_name}")
+    return pd.read_csv(f"Datasets/Preprocessing/test_csvs/{file_name}")
 
 
 # Test mean imputation on numeric columns
