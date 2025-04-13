@@ -1,0 +1,109 @@
+In today’s world, use of wireless devices has increased significantly with the advances in wireless technology. In the near future significant growth of connected devices is expected with mass adoption of IoT. Huge amount of spectrum is required to support this increasing number of wireless devices. But the spectrum available is a scarce resource. If we check current spectrum allocation chart, it’s very hard to find free spectrum to support upcoming volumes of wireless devices and mobile data traffic.
+
+In order to share the spectrum with licensed users without disturbing them, and meet the diverse quality of service requirements of applications, each Cognitive Radio (CR) user in a CR Network (CRN) must continuously perform four key tasks.
+
+
+https://www.wipro.com/engineering/cognitive-radio/
+
+
+
+183
+164
+204
+189
+206
+178
+120
+
+157
+
+
+
+import pandas as pd
+import Levenshtein
+from numpy import mean
+from rdkit import Chem
+from rdkit import DataStructs
+from rdkit.Chem.Fingerprints import FingerprintMols
+from rdkit.Chem import AllChem
+import json
+import os
+
+import torch
+from torch.utils.data import Dataset, DataLoader
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple
+from torch.nn.utils.rnn import pad_sequence
+import os
+import pandas as pd
+from tqdm.auto import tqdm
+
+tqdm.pandas()
+from PIL import Image
+
+
+import torch
+from torch.utils.data import Dataset, DataLoader
+from torchvision.transforms.transforms import Compose, Normalize, Resize, ToTensor, RandomHorizontalFlip, RandomCrop
+from tqdm.auto import tqdm
+import time
+from models import EncoderDecodertrain18
+from dataset import GetDataset, CapsCollate
+from vocab import Vocabulary
+import matplotlib.pyplot as plt
+import Levenshtein
+import json
+from utils import get_best_model
+
+import torch
+import torch.nn as nn
+import torchvision
+import torch.nn.functional as F
+from tqdm.auto import tqdm
+
+
+import numpy as np
+import pandas as pd
+import os
+import torch
+import torch.nn as nn
+import torchvision
+from torch.utils.data import Dataset, DataLoader
+from PIL import Image
+import PIL
+import time
+import matplotlib.pyplot as plt
+import json
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple
+from torchvision.transforms.transforms import Compose, Normalize, Resize, ToTensor, RandomHorizontalFlip, RandomCrop
+from torch.nn.utils.rnn import pad_sequence
+import torch.optim as optim
+import torch.nn.functional as F
+import datetime
+import seaborn as sns
+from tqdm.auto import tqdm
+from models import EncoderDecodertrain18
+from dataset import GetDataset, CapsCollate
+from vocab import Vocabulary
+
+
+import pandas as pd
+from indigo import IndigoObject, Indigo
+from indigo.renderer import IndigoRenderer
+import os
+from tqdm import tqdm
+import torch
+
+import os
+import numpy as np
+from tqdm.auto import tqdm
+import torch
+from torch.utils.data import Dataset, DataLoader
+from torchvision.transforms.transforms import Compose, Normalize, Resize, ToTensor, RandomHorizontalFlip, RandomCrop
+from models import EncoderDecodertrain18
+from dataset import GetDataset, CapsCollate
+from vocab import Vocabulary
+import matplotlib.pyplot as plt
+
+from collections import Counter
+
+
