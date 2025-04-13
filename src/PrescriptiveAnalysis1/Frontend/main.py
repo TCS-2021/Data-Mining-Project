@@ -1,9 +1,11 @@
 import streamlit as st
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pandas as pd
 import time
+from collections import defaultdict
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from Backend.gspan import run_gspan_analysis, construct_dfs_code, load_graphs_from_json
 from Backend.apriori_graph import parse_graph_file, apriori_graph_mining
 from Backend.gsp import preprocess_sequences_ordered, gsp_algorithm
 
@@ -18,7 +20,7 @@ def apriori_graph_mining_app():
             with st.spinner("Processing..."):
                 tables, frequent_edge_sets = apriori_graph_mining(graphs, min_support)
                 for k in range(len(tables)):
-                    if tables[k]:  
+                    if tables[k]:
                         st.header(f"{k+1}-Edge Frequent Subgraphs")
                         df_k_edge = pd.DataFrame(tables[k])
                         st.dataframe(df_k_edge)
@@ -26,7 +28,6 @@ def apriori_graph_mining_app():
                             st.write(f"Frequent {k+1}-edge sub-graphs: {['[' + ', '.join([f'({e[0]}, {e[1]})' for e in edge_set]) + ']' for edge_set in frequent_edge_sets[k]]}")
                         else:
                             st.write(f"No frequent {k+1}-edge sub-graphs found.")
-
 
 def gsp_algorithm_app():
     st.title("GSP Algorithm Implementation")
@@ -84,13 +85,59 @@ def gsp_algorithm_app():
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
 
+def gspan_algorithm_app():
+    st.title("GSPan Algorithm Implementation")
+    uploaded_file = st.file_uploader("Upload your JSON graph dataset file", type=['json'], key="gspan_file")
+    if uploaded_file is not None:
+        temp_file_path = "temp_graphs.json"
+        with open(temp_file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        
+        graphs_dict = load_graphs_from_json(temp_file_path)
+        
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+        
+        if graphs_dict is not None:
+            min_support = st.slider("Minimum Support", 1, len(graphs_dict), 2, key="gspan_min_support")
+            if st.button("Run GSPan Algorithm"):
+                with st.spinner("Processing..."):
+                    st.header("DFS Codes for Each Graph")
+                    all_dfs_codes = {}
+                    for graph_name, graph in graphs_dict.items():
+                        dfs_code, discovery_order = construct_dfs_code(graph, 'A', directed=True)
+                        all_dfs_codes[graph_name] = dfs_code
+                        st.subheader(f"DFS Code for {graph_name}")
+                        if dfs_code:
+                            df_dfs = pd.DataFrame(dfs_code, columns=["i", "j", "label_i", "edge_label", "label_j"])
+                            st.dataframe(df_dfs)
+                        else:
+                            st.write("No DFS code generated for this graph.")
+                        st.write(f"Discovery Order: {discovery_order}")
+
+                    tables, frequent_edge_sets = run_gspan_analysis(graphs_dict, min_support, directed=True)
+                    for k in range(len(tables)):
+                        if tables[k]:
+                            st.header(f"{k+1}-Edge Frequent Subgraphs")
+                            df_k_edge = pd.DataFrame(tables[k])
+                            st.dataframe(df_k_edge)
+                            if frequent_edge_sets[k]:
+                                edge_sets_str = ['[' + ', '.join([f'({e[0]}-{e[1]})' for e in edge_set]) + ']' for edge_set in frequent_edge_sets[k]]
+                                st.write(f"Frequent {k+1}-edge sub-graphs: {edge_sets_str}")
+                            else:
+                                st.write(f"No frequent {k+1}-edge sub-graphs found.")
+        else:
+            st.error("Failed to load graphs from the uploaded file.")
+
 def main():
     st.sidebar.title("Algorithm Selection")
-    algorithm = st.sidebar.selectbox("Choose an algorithm", ["Apriori Graph Mining", "GSP Algorithm"])
+    algorithm = st.sidebar.selectbox("Choose an algorithm", ["Apriori Graph Mining", "GSP Algorithm", "GSPan Algorithm"])
     if algorithm == "Apriori Graph Mining":
         apriori_graph_mining_app()
     elif algorithm == "GSP Algorithm":
         gsp_algorithm_app()
+    elif algorithm == "GSPan Algorithm":
+        gspan_algorithm_app()
 
 if __name__ == "__main__":
     main()

@@ -33,6 +33,43 @@ The file content has to be of the format
 ----------------------------------------------------------------------------------------------------
 
 
+
+
+
+-GSPAN GRAPH DATA MINING
+----------------------------------------------------------------------------------------------------
+-Min Support can be changed dynamically using a slider for all datasets
+
+File: "GSpan_Graph1.json"
+Example question given in sir's ppt 
+Min Support = 2 
+(Answer cross-checked)
+
+File: "GSpan_Graph2.json"
+Random dataset containing 3 Graphs
+
+The file content has to be of the format
+{
+    "GraphName1": {
+        "Node1": ["Node2", "Node3", ...],
+        "Node2": ["Node1", ...],
+        ...
+    },
+    "GraphName2": {
+        "Node1": [...],
+        ...
+    },
+    ...
+}
+...
+and so on
+----------------------------------------------------------------------------------------------------
+
+
+
+
+
+
 -GSP
 ----------------------------------------------------------------------------------------------------
 File: "example1.csv"
