@@ -69,6 +69,37 @@ and so on
 
 
 
+-APRIORI ALGORITHM
+----------------------------------------------------------------------------------------------------
+File: "Frequent Pattern Mining.csv"
+This is the example dataset given by sir for 2nd asignment.
+Min Support = 0.02
+Min Confidence = 0.3 (for rule generation)
+(Answer cross-checked)
+
+The file must have columns named:
+"INVOICENO", "PRODUCTNAME"
+----------------------------------------------------------------------------------------------------
+
+
+
+
+
+-FP-GROWTH ALGORITHM
+----------------------------------------------------------------------------------------------------
+File: "Frequent Pattern Mining.csv"
+This is the example dataset given by sir for 2nd asignment.
+Min Support = 0.02
+Min Confidence = 0.3 (for rule generation)
+(Answer cross-checked)
+
+The file must have columns named:
+"INVOICENO", "PRODUCTNAME"
+----------------------------------------------------------------------------------------------------
+
+
+
+
 
 -GSP
 ----------------------------------------------------------------------------------------------------
