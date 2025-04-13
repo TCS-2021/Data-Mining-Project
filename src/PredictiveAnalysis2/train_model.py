@@ -6,8 +6,7 @@ import re
 
 import numpy as np
 from faker import Faker
-from keras.layers import (Bidirectional, Dense, Embedding, Input,
-                                     LSTM, TimeDistributed)
+from keras.layers import Bidirectional, Dense, Embedding, Input, LSTM, TimeDistributed
 from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
