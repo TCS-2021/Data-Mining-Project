@@ -8,6 +8,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from Backend.gspan import run_gspan_analysis, construct_dfs_code, load_graphs_from_json
 from Backend.apriori_graph import parse_graph_file, apriori_graph_mining
 from Backend.gsp import preprocess_sequences_ordered, gsp_algorithm
+from Backend.apriori import run_apriori_analysis
+from Backend.fp_growth import run_fp_growth_analysis  
 
 def apriori_graph_mining_app():
     st.title("Apriori-Based Graph Mining")
@@ -129,10 +131,116 @@ def gspan_algorithm_app():
         else:
             st.error("Failed to load graphs from the uploaded file.")
 
+def apriori_algorithm_app():
+    st.title("Apriori Algorithm Implementation")
+    st.write("This app performs frequent itemset mining and rule generation using the Apriori algorithm.")
+    uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"], key="apriori_csv_file")
+    if uploaded_file is not None:
+        try:
+            df = pd.read_csv(uploaded_file)
+            st.success("File successfully uploaded and read!")
+            with st.expander("View Uploaded Data"):
+                st.dataframe(df)
+            min_support = st.slider(
+                "Select minimum support threshold (0-1)",
+                min_value=0.01,
+                max_value=1.0,
+                value=0.02,
+                step=0.01,
+                key="apriori_min_support"
+            )
+            min_confidence = st.slider(
+                "Select minimum confidence threshold (0-1)",
+                min_value=0.1,
+                max_value=1.0,
+                value=0.3,
+                step=0.05,
+                key="apriori_min_confidence"
+            )
+            if st.button("Run Apriori Algorithm"):
+                with st.spinner("Processing..."):
+                    itemsets_df, rules_df, execution_time, error = run_apriori_analysis(df, min_support, min_confidence)
+                    if error:
+                        st.error(f"Error: {error}")
+                    else:
+                        st.success(f"Processing completed in {execution_time:.2f} seconds!")
+                        if not itemsets_df.empty:
+                            st.header("Frequent Itemsets")
+                            for level in sorted(itemsets_df["Level"].unique()):
+                                st.subheader(f"Level {level} Frequent Itemsets")
+                                level_df = itemsets_df[itemsets_df["Level"] == level][["Frequent Itemset", "Support"]]
+                                st.dataframe(level_df)
+                                st.write(f"Number of {level}-itemsets: {len(level_df)}")
+                        else:
+                            st.write("No frequent itemsets found.")
+                        if not rules_df.empty:
+                            st.header("Association Rules")
+                            st.dataframe(rules_df)
+                            st.write(f"Number of rules: {len(rules_df)}")
+                        else:
+                            st.write("No association rules generated.")
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
+
+def fp_growth_algorithm_app():
+    st.title("FP-Growth Algorithm Implementation")
+    st.write("This app performs frequent itemset mining and rule generation using the FP-Growth algorithm.")
+    uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"], key="fp_growth_csv_file")
+    if uploaded_file is not None:
+        try:
+            df = pd.read_csv(uploaded_file)
+            st.success("File successfully uploaded and read!")
+            with st.expander("View Uploaded Data"):
+                st.dataframe(df)
+            min_support = st.slider(
+                "Select minimum support threshold (0-1)",
+                min_value=0.01,
+                max_value=1.0,
+                value=0.02,
+                step=0.01,
+                key="fp_growth_min_support"
+            )
+            min_confidence = st.slider(
+                "Select minimum confidence threshold (0-1)",
+                min_value=0.1,
+                max_value=1.0,
+                value=0.3,
+                step=0.05,
+                key="fp_growth_min_confidence"
+            )
+            if st.button("Run FP-Growth Algorithm"):
+                with st.spinner("Processing..."):
+                    itemsets_df, rules_df, execution_time, error = run_fp_growth_analysis(df, min_support, min_confidence)
+                    if error:
+                        st.error(f"Error: {error}")
+                    else:
+                        st.success(f"Processing completed in {execution_time:.2f} seconds!")
+                        if not itemsets_df.empty:
+                            st.header("Frequent Itemsets")
+                            for level in sorted(itemsets_df["Level"].unique()):
+                                st.subheader(f"Level {level} Frequent Itemsets")
+                                level_df = itemsets_df[itemsets_df["Level"] == level][["Frequent Itemset", "Support"]]
+                                st.dataframe(level_df)
+                                st.write(f"Number of {level}-itemsets: {len(level_df)}")
+                        else:
+                            st.write("No frequent itemsets found.")
+                        if not rules_df.empty:
+                            st.header("Association Rules")
+                            st.dataframe(rules_df)
+                            st.write(f"Number of rules: {len(rules_df)}")
+                        else:
+                            st.write("No association rules generated.")
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
+
 def main():
     st.sidebar.title("Algorithm Selection")
-    algorithm = st.sidebar.selectbox("Choose an algorithm", ["Apriori Graph Mining", "GSP Algorithm", "GSPan Algorithm"])
-    if algorithm == "Apriori Graph Mining":
+    algorithm = st.sidebar.selectbox("Choose an algorithm", ["Apriori Algorithm", "FP-Growth Algorithm", "Apriori Graph Mining", "GSP Algorithm", "GSPan Algorithm"])
+    if algorithm == "Apriori Algorithm":
+        apriori_algorithm_app()
+    elif algorithm == "FP-Growth Algorithm":
+        fp_growth_algorithm_app()
+    elif algorithm == "Apriori Graph Mining":
         apriori_graph_mining_app()
     elif algorithm == "GSP Algorithm":
         gsp_algorithm_app()
