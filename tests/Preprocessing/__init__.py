@@ -1,3 +1,0 @@
-"""
-Preprocessing tests initialization file.
-""" 

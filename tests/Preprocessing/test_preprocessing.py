@@ -5,10 +5,10 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-from src.Preprocessing.app import handle_missing_values
-from src.Preprocessing.app import smooth_data 
-from src.Preprocessing.app import handle_outliers 
-from src.Preprocessing.app import analyse_variance
+from src.preprocessing.app import handle_missing_values
+from src.preprocessing.app import smooth_data 
+from src.preprocessing.app import handle_outliers 
+from src.preprocessing.app import analyse_variance
 from unittest.mock import patch
 
 def load_csv(file_name):
