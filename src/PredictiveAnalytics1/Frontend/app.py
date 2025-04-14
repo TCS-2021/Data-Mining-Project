@@ -34,7 +34,7 @@ def main():
             df = cached_load_data(uploaded_file)
     else:
         current_file = Path(__file__).resolve()
-        dataset_dir = current_file.parents[2] / 'Datasets' / 'Predictive-Analytics-1'
+        dataset_dir = current_file.parents[2] / 'Datasets' / 'predictive-analytics-1'
         dataset_files = [f for f in os.listdir(dataset_dir) if f.endswith(".csv")]
 
         if dataset_files:
