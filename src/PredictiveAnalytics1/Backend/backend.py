@@ -103,9 +103,9 @@ def train_model(X, y, model_type, problem_type):
         return {
             "Model": model_type,
             "Accuracy": accuracy_score(y_test, y_pred),
-            "Precision": precision_score(y_test, y_pred),
-            "Recall": recall_score(y_test, y_pred),
-            "F1": f1_score(y_test, y_pred)
+            "Precision": precision_score(y_test, y_pred, average="weighted"),
+            "Recall": recall_score(y_test, y_pred, average="weighted"),
+            "F1": f1_score(y_test, y_pred, average="weighted")
         }
     else:
         return {

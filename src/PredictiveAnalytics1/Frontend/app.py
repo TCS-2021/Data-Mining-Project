@@ -2,10 +2,11 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
+import sys
 from pathlib import Path
-from backend import (
-    load_data, preprocess_data, apply_pca, determine_problem_type, train_model
-)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from Backend.backend import (
+    load_data, preprocess_data, apply_pca, determine_problem_type, train_model)
 from sklearn.preprocessing import LabelEncoder
 from sklearn.cluster import DBSCAN, SpectralClustering
 from sklearn.preprocessing import StandardScaler
@@ -34,7 +35,7 @@ def main():
             df = cached_load_data(uploaded_file)
     else:
         current_file = Path(__file__).resolve()
-        dataset_dir = current_file.parents[2] / 'Datasets' / 'predictive-analytics-1'
+        dataset_dir = current_file.parents[3] / 'Datasets' / 'predictive-analytics-1'
         dataset_files = [f for f in os.listdir(dataset_dir) if f.endswith(".csv")]
 
         if dataset_files:
