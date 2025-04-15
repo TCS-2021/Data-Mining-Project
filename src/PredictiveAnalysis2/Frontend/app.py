@@ -11,17 +11,20 @@ from keras.models import load_model
 from keras.preprocessing.sequence import pad_sequences
 from PyPDF2 import PdfReader
 from docx import Document
+import os
 
 # Load model and utilities
-model = load_model("ner_model.h5")
+backend_path = os.path.join(os.path.dirname(__file__), "../Backend")
 
-with open("tokenizer.pkl", "rb") as f:
+model = load_model(os.path.join(backend_path, "ner_model.h5"))
+
+with open(os.path.join(backend_path, "tokenizer.pkl"), "rb") as f:
     tokenizer = pickle.load(f)
 
-with open("idx_to_label.pkl", "rb") as f:
+with open(os.path.join(backend_path, "idx_to_label.pkl"), "rb") as f:
     idx_to_label = pickle.load(f)
 
-with open("max_len.pkl", "rb") as f:
+with open(os.path.join(backend_path, "max_len.pkl"), "rb") as f:
     max_len = pickle.load(f)
 
 word_index = tokenizer.word_index
