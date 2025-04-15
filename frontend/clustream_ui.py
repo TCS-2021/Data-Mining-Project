@@ -66,12 +66,12 @@ def create_topic():
 
 def start_producer():
     st.info("Starting Kafka Producer...")
-    processes['producer'] = launch_background(['python', 'producer_clu.py'])
+    processes['producer'] = launch_background(['python', 'backend/producer_clu.py'])
     st.success("Producer started successfully")
 
 def start_consumer():
     st.info("Starting Kafka Consumer...")
-    processes['consumer'] = launch_background(['python', 'consumer_clu.py'])
+    processes['consumer'] = launch_background(['python', 'backend/consumer_clu.py'])
     st.success("Consumer started successfully")
         
     st.title("📊 Live CluStream Plot Viewer")
