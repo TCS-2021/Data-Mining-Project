@@ -1,6 +1,5 @@
 import pandas as pd
 from collections import defaultdict
-import traceback
 
 def preprocess_data_vertical(df):
     """
@@ -10,19 +9,17 @@ def preprocess_data_vertical(df):
     """
     try:
         # Convert dates to datetime
-        df['INVOICEDATE'] = pd.to_datetime(df['INVOICEDATE'], errors='coerce', dayfirst=True)
+        try:
+            df['INVOICEDATE'] = pd.to_datetime(df['INVOICEDATE'], errors='coerce')
+        except:
+            df['INVOICEDATE'] = pd.to_datetime(df['INVOICEDATE'], errors='coerce', dayfirst=True)
         
-        # Sort data by customer and date
         df_sorted = df.sort_values(['NAME', 'INVOICEDATE'])
-
-        # Create event IDs for each customer
         df_sorted['EID'] = df_sorted.groupby('NAME').cumcount() + 1
 
-        # Handle comma-separated values in PRODUCTNAME
         vertical_format = []
         for _, row in df_sorted.iterrows():
             if isinstance(row['PRODUCTNAME'], str) and ',' in row['PRODUCTNAME']:
-                # Split by comma and process each item
                 for item in row['PRODUCTNAME'].split(','):
                     vertical_format.append({
                         'SID': row['NAME'],
@@ -30,7 +27,6 @@ def preprocess_data_vertical(df):
                         'item': item.strip()
                     })
             else:
-                # Single item
                 vertical_format.append({
                     'SID': row['NAME'],
                     'EID': row['EID'],
@@ -93,13 +89,11 @@ def join_idlists(idlist1, idlist2, join_type='temporal'):
     for sid, eid in idlist2:
         if sid in dict1:
             if join_type == 'temporal':
-                # For sequence extension, EID2 > EID1
                 for eid1 in dict1[sid]:
                     if eid > eid1:
                         result.append((sid, eid))
                         break
-            else:  # itemset extension
-                # For itemset extension, identical EIDs
+            else:
                 if eid in dict1[sid]:
                     result.append((sid, eid))
     return result
@@ -108,81 +102,66 @@ def generate_candidate_k_sequences(frequent_sequences_k_minus_1, k, idlists):
     """Generate candidate k-sequences from frequent (k-1)-sequences."""
     try:
         candidates = []
-        
-        # Extract patterns from sequences
         items = [seq for seq, _ in frequent_sequences_k_minus_1]
         
         if k == 2:
-            # Try all pairs for both sequence and itemset extensions
+            # Generate unique itemsets and sequences
+            seen_itemsets = set()
             for i, item_i in enumerate(items):
-                for j, item_j in enumerate(items):
-                    if i == j:
-                        continue
-                    
-                    # Extract item strings from frozensets
+                for j, item_j in enumerate(items[i+1:], start=i+1):  # Ensure i < j to avoid duplicates
                     item_i_str = list(item_i)[0]
                     item_j_str = list(item_j)[0]
-                    
                     if item_i_str == item_j_str:
                         continue
                     
-                    # Get ID lists for the items
                     idlist_i = idlists[item_i_str]
                     idlist_j = idlists[item_j_str]
                     
-                    # Itemset extension (both items in same event)
-                    new_itemset = frozenset([item_i_str, item_j_str])
-                    new_idlist = join_idlists(idlist_i, idlist_j, join_type='itemset')
-                    if new_idlist:  # Only add if the join produced results
+                    # Itemset extension: only generate in canonical order
+                    itemset_tuple = tuple(sorted([item_i_str, item_j_str]))
+                    if itemset_tuple not in seen_itemsets:
+                        new_itemset = frozenset(itemset_tuple)
+                        new_idlist = join_idlists(idlist_i, idlist_j, join_type='itemset')
                         candidates.append((new_itemset, new_idlist))
+                        seen_itemsets.add(itemset_tuple)
                     
-                    # Sequence extension (sequential events)
+                    # Sequence extension: both orders are valid
                     new_sequence = (item_i_str, item_j_str)
                     new_idlist = join_idlists(idlist_i, idlist_j, join_type='temporal')
-                    if new_idlist:  # Only add if the join produced results
-                        candidates.append((new_sequence, new_idlist))
+                    candidates.append((new_sequence, new_idlist))
+                    
+                    new_sequence = (item_j_str, item_i_str)
+                    new_idlist = join_idlists(idlist_j, idlist_i, join_type='temporal')
+                    candidates.append((new_sequence, new_idlist))
         else:
-            # For k > 2, use prefix-based join for sequences
-            # Create a lookup dictionary for pattern -> idlist
-            idlist_lookup = {}
-            for pattern, _ in frequent_sequences_k_minus_1:
-                if isinstance(pattern, tuple):
-                    # This is for sequence patterns
-                    idlist_lookup[pattern] = None  # We'll fill this later
-            
-            # This is a simplified version that needs to be expanded for full implementation
-            for i, seq_i in enumerate(items):
-                for j, seq_j in enumerate(items):
+            sequence_patterns = [(p, s) for p, s in frequent_sequences_k_minus_1 if isinstance(p, tuple) and len(p) == k-1]
+            for i, (seq_i, _) in enumerate(sequence_patterns):
+                for j, (seq_j, _) in enumerate(sequence_patterns):
                     if i == j:
                         continue
-                    
-                    # Only handle tuple patterns (sequences) for k > 2
-                    if isinstance(seq_i, tuple) and isinstance(seq_j, tuple) and len(seq_i) == len(seq_j) == k-1:
-                        # Check if they share the same prefix (all but last item)
-                        if seq_i[:-1] == seq_j[:-1] and seq_i[-1] != seq_j[-1]:
-                            # Create new sequence by adding the last item of seq_j to seq_i
-                            new_sequence = seq_i + (seq_j[-1],)
-                            
-                            # For k > 2, we would need more complex ID-list joining logic here
-                            # In a full implementation, you'd need to track ID-lists for all k-1 patterns
-                            
-                            # Placeholder - in actual implementation, this would require proper ID-list joining
-                            # This is where the algorithm needs expansion
-                            # For now, we'll return an empty candidates list for k > 2
-                            pass
-        
+                    if seq_i[:-1] == seq_j[:-1]:
+                        new_sequence = seq_i + (seq_j[-1],)
+                        idlist_i = idlists[seq_i[-1]]
+                        idlist_j = idlists[seq_j[-1]]
+                        new_idlist = join_idlists(idlist_i, idlist_j, join_type='temporal')
+                        candidates.append((new_sequence, new_idlist))
+
         return candidates, None
     except Exception as e:
-        return None, f"Error in generating candidate {k}-sequences: {str(e)}\n{traceback.format_exc()}"
+        return None, f"Error in generating candidate {k}-sequences: {str(e)}"
 
 def filter_frequent_sequences(candidates, min_support, total_sequences):
     """Filter candidates to get frequent sequences."""
     try:
         frequent_sequences = []
+        seen_patterns = set()
         for pattern, idlist in candidates:
             support = calculate_support(idlist, total_sequences)
             if support >= min_support:
-                frequent_sequences.append((pattern, support * total_sequences))
+                pattern_key = pattern if isinstance(pattern, tuple) else tuple(sorted(pattern))
+                if pattern_key not in seen_patterns:
+                    frequent_sequences.append((pattern, support * total_sequences))
+                    seen_patterns.add(pattern_key)
         return frequent_sequences, None
     except Exception as e:
         return None, f"Error in filtering frequent sequences: {str(e)}"
@@ -205,46 +184,60 @@ def get_pattern_length(pattern):
 
 def run_spade_analysis(df, min_support):
     """
-    Main SPADE algorithm implementation.
-    Returns: transactions_df, results (frequent_1, candidates, all_frequent), all_frequent_df, error
+    Main SPADE algorithm implementation with enhanced output.
+    Returns: transactions_df, detailed_results, all_frequent_df, error
     """
     try:
-        # Step 1: Preprocess data to vertical format
         vertical_df, error = preprocess_data_vertical(df)
         if error:
             return None, None, None, error
 
-        # Step 2: Create transaction table
         transactions_df, error = get_transaction_table(vertical_df)
         if error:
             return None, None, None, error
 
-        # Step 3: Create ID-lists
         idlists, error = create_idlists(vertical_df)
         if error:
             return None, None, None, error
+        
         total_sequences = vertical_df['SID'].nunique()
-
-        # Step 4: Generate frequent 1-sequences
         frequent_1, error = generate_1_sequences(idlists, min_support, total_sequences)
         if error:
             return None, None, None, error
 
-        # Step 5: Generate frequent k-sequences (k ≥ 2)
-        all_frequent = [(pattern, support) for pattern, support in frequent_1]
-        candidates_all = []
-        k = 2
+        frequent_1_df = pd.DataFrame([
+            (format_pattern(seq), support)
+            for seq, support in sorted(frequent_1, key=lambda x: str(x[0]))
+        ], columns=["Pattern", "Support"])
 
+        all_frequent = list(frequent_1)
+        all_frequent_by_level = {1: frequent_1}
+        
+        detailed_results = {
+            "vertical_format_sample": vertical_df.head(10),
+            "transactions": transactions_df,
+            "total_sequences": total_sequences,
+            "min_support": min_support,
+            "frequent_1": frequent_1_df,
+            "candidates": [],  # Store candidates as a list of (k, df) tuples
+            "frequent": []     # Store frequent sequences as a list of (k, df) tuples
+        }
+
+        k = 2
         while True:
-            # Generate candidates
-            candidates_k, error = generate_candidate_k_sequences(frequent_1 if k == 2 else [], k, idlists)
+            candidates_k, error = generate_candidate_k_sequences(all_frequent_by_level.get(k-1, []), k, idlists)
             if error:
                 return None, None, None, error
             
             if not candidates_k:
                 break
                 
-            # Filter frequent sequences
+            candidates_df = pd.DataFrame([
+                (format_pattern(seq), len(idlist))
+                for seq, idlist in sorted(candidates_k, key=lambda x: str(x[0]))
+            ], columns=["Pattern", "ID-List Length"])
+            detailed_results["candidates"].append((k, candidates_df))
+            
             frequent_k, error = filter_frequent_sequences(candidates_k, min_support, total_sequences)
             if error:
                 return None, None, None, error
@@ -252,21 +245,25 @@ def run_spade_analysis(df, min_support):
             if not frequent_k:
                 break
 
-            # Update all_frequent and candidates
+            all_frequent_by_level[k] = frequent_k
+            frequent_k_df = pd.DataFrame([
+                (format_pattern(seq), support)
+                for seq, support in sorted(frequent_k, key=lambda x: str(x[0]))
+            ], columns=["Pattern", "Support"])
+            detailed_results["frequent"].append((k, frequent_k_df))
+            
             all_frequent.extend(frequent_k)
-            candidates_all.extend(frequent_k)
             k += 1
 
-        # Create DataFrame for all frequent sequences
         all_frequent_df = pd.DataFrame(
             [(format_pattern(seq), support, "Itemset" if isinstance(seq, frozenset) else "Sequence", get_pattern_length(seq))
-             for seq, support in sorted(all_frequent, key=lambda x: (get_pattern_length(x[0]), str(x[0])))],
+             for seq, support in sorted(all_frequent, key=lambda x: (get_pattern_length(x[0]), isinstance(x[0], frozenset), str(x[0])))],
             columns=["Pattern", "Support", "Pattern Type", "Length"]
         )
-
-        results = (frequent_1, candidates_all, all_frequent)
-        return transactions_df, results, all_frequent_df, None
+        
+        detailed_results["all_frequent"] = all_frequent_df
+        return transactions_df, detailed_results, all_frequent_df, None
 
     except Exception as e:
-        error_msg = f"Error in SPADE analysis: {str(e)}\n{traceback.format_exc()}"
+        error_msg = f"Error in SPADE analysis: {str(e)}"
         return None, None, None, error_msg
