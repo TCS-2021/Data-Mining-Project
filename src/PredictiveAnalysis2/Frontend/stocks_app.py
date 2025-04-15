@@ -2,7 +2,8 @@
 """
 Streamlit application for analyzing and forecasting NIFTY 50 stock market data using LSTM models
 """
-
+import sys
+import os
 from datetime import timedelta
 import pandas as pd
 import numpy as np
@@ -11,8 +12,9 @@ from sklearn.metrics import r2_score, mean_absolute_error
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
-from data_utils import get_realtime_data, get_realtime_daily_data, load_and_cache_file
-from model_utils import create_sequences, build_lstm_model, build_bidirectional_lstm, rolling_forecast
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from Backend.data_utils import get_realtime_data, get_realtime_daily_data, load_and_cache_file
+from Backend.model_utils import create_sequences, build_lstm_model, build_bidirectional_lstm, rolling_forecast
 
 
 def create_main_chart(df, selected_metric, chart_type):
@@ -126,7 +128,7 @@ def main():
             - View real-time data and stock-wise historical data
             - LSTM-based price prediction
             - Visualization
-            **Historical Data File Requirements**
+            - **Historical Data File Requirements**
             - Columns: `Date`, `Stock Name`, `Open`, `High`, `Low`, `Close`, `Volume`
         """)
 
