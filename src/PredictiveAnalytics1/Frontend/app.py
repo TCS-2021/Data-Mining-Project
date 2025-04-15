@@ -1,3 +1,5 @@
+#app.py
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -19,6 +21,45 @@ st.set_page_config(page_title="Model Comparison Tool", layout="wide")
 @st.cache_data
 def cached_load_data(file_path):
     return load_data(file_path)
+
+def get_hyperparameters_ui(model_name, problem_type, key_prefix=""):
+    params = {}
+
+    if problem_type == "regression":
+        if model_name == "Random Forest":
+            params['n_estimators'] = st.number_input(f"{model_name} - n_estimators", 10, 500, 100, key=key_prefix + "_n_estimators")
+            params['max_depth'] = st.number_input(f"{model_name} - max_depth", 1, 50, 10, key=key_prefix + "_max_depth")
+        elif model_name == "Decision Tree Regressor":
+            params['max_depth'] = st.number_input(f"{model_name} - max_depth", 1, 50, 5, key=key_prefix + "_max_depth")
+        elif model_name == "SVM Regressor":
+            params['C'] = st.number_input(f"{model_name} - C", 0.01, 10.0, 1.0, key=key_prefix + "_C")
+            params['kernel'] = st.selectbox(f"{model_name} - kernel", ['linear', 'rbf', 'poly'], key=key_prefix + "_kernel")
+        elif model_name == "AdaBoost":
+            params['n_estimators'] = st.number_input(f"{model_name} - n_estimators", 10, 500, 100, key=key_prefix + "_n_estimators")
+        elif model_name == "Lasso":
+            params['alpha'] = st.number_input(f"{model_name} - alpha", 0.01, 1.0, 0.1, key=key_prefix + "_alpha")
+        elif model_name == "Ridge":
+            params['alpha'] = st.number_input(f"{model_name} - alpha", 0.01, 1.0, 0.1, key=key_prefix + "_alpha")
+
+    elif problem_type == "classification":
+        if model_name == "Random Forest":
+            params['n_estimators'] = st.number_input(f"{model_name} - n_estimators", 10, 500, 100, key=key_prefix + "_n_estimators")
+            params['max_depth'] = st.number_input(f"{model_name} - max_depth", 1, 50, 10, key=key_prefix + "_max_depth")
+        elif model_name == "Decision Tree Classifier":
+            params['max_depth'] = st.number_input(f"{model_name} - max_depth", 1, 50, 5, key=key_prefix + "_max_depth")
+        elif model_name == "SVM Classifier":
+            params['C'] = st.number_input(f"{model_name} - C", 0.01, 10.0, 1.0, key=key_prefix + "_C")
+            params['kernel'] = st.selectbox(f"{model_name} - kernel", ['linear', 'rbf', 'poly'], key=key_prefix + "_kernel")
+
+    elif problem_type == "clustering":
+        if model_name == "DBSCAN":
+            params['eps'] = st.slider(f"{model_name} - eps", 0.1, 2.0, 0.5, 0.1, key=key_prefix + "_eps")
+            params['min_samples'] = st.slider(f"{model_name} - min_samples", 1, 20, 5, key=key_prefix + "_min_samples")
+        elif model_name == "Spectral Clustering":
+            params['n_clusters'] = st.slider(f"{model_name} - n_clusters", 2, 10, 3, key=key_prefix + "_n_clusters")
+            params['affinity'] = st.selectbox(f"{model_name} - affinity", ['nearest_neighbors', 'rbf'], key=key_prefix + "_affinity")
+
+    return params
 
 
 def main():
@@ -47,9 +88,19 @@ def main():
             return
 
     if df is not None:
-        with st.expander("View Raw Data"):
+        
+        if (len(df)>10000):
+            st.write(f"Original dataset shape: {df.shape}")
+    
+            max_sample = 10000
+            sample_size = st.slider("Sample size (for performance)", 1000, max_sample, 3000, step=500)
+            df = df.sample(n=sample_size, random_state=42).reset_index(drop=True)
+        
+            st.write(f"Sampled dataset shape: {df.shape}")
+    
+        with st.expander("View Sampled Raw Data"):
             st.dataframe(df.head())
-
+            
         clustering_mode = st.checkbox("Enable clustering mode (no target variable)")
 
         if clustering_mode:
@@ -71,8 +122,7 @@ def main():
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         X_pca = apply_pca(X_scaled)
-
-
+        
         st.subheader("Model Selection")
 
         if problem_type == "regression":
@@ -98,20 +148,21 @@ def main():
             other_models = [m for m in model_options if m != model1]
             model2 = st.selectbox("Select second model", other_models, index=0)
 
-        if problem_type == "clustering":
-            if model1 == "DBSCAN" or model2 == "DBSCAN":
-                eps = st.slider("DBSCAN eps parameter", 0.1, 2.0, 0.5, 0.1)
-                min_samples = st.slider("DBSCAN min_samples parameter", 1, 10, 5)
-            if model1 == "Spectral Clustering" or model2 == "Spectral Clustering":
-                n_clusters = st.slider("Number of clusters for Spectral Clustering", 2, 10, 3)
+        st.subheader("Tune Model Hyperparameters")
+
+        with st.expander(f"{model1} Hyperparameters", expanded=True):
+            hyperparams1 = get_hyperparameters_ui(model1, problem_type, key_prefix="model1")
+
+        with st.expander(f"{model2} Hyperparameters", expanded=True):
+            hyperparams2 = get_hyperparameters_ui(model2, problem_type, key_prefix="model2")
 
         if st.button("Compare Models"):
             with st.spinner("Training models..."):
                 if problem_type == "clustering":
                     if model1 == "DBSCAN":
-                        model = DBSCAN(eps=eps, min_samples=min_samples)
+                        model = DBSCAN(**hyperparams1)
                     elif model1 == "Spectral Clustering":
-                        model = SpectralClustering(n_clusters=n_clusters, affinity='nearest_neighbors')
+                        model = SpectralClustering(**hyperparams1)
 
                     labels = model.fit_predict(X_pca)
                     metrics1 = {
@@ -121,9 +172,9 @@ def main():
                     }
 
                     if model2 == "DBSCAN":
-                        model = DBSCAN(eps=eps, min_samples=min_samples)
+                        model = DBSCAN(**hyperparams2)
                     elif model2 == "Spectral Clustering":
-                        model = SpectralClustering(n_clusters=n_clusters, affinity='nearest_neighbors')
+                        model = SpectralClustering(**hyperparams2)
 
                     labels = model.fit_predict(X_pca)
                     metrics2 = {
@@ -132,8 +183,8 @@ def main():
                         "Number of Clusters": len(np.unique(labels))
                     }
                 else:
-                    metrics1 = train_model(X_pca, y, model1, problem_type)
-                    metrics2 = train_model(X_pca, y, model2, problem_type)
+                    metrics1 = train_model(X_pca, y, model1, problem_type, hyperparams1)
+                    metrics2 = train_model(X_pca, y, model2, problem_type, hyperparams2)
 
                 comparison_df = pd.DataFrame([metrics1, metrics2])
 
@@ -183,9 +234,9 @@ def main():
                     cluster_df = pd.DataFrame(X_pca, columns=['PC1', 'PC2'])
 
                     if model1 == "DBSCAN":
-                        model = DBSCAN(eps=eps, min_samples=min_samples)
+                        model = DBSCAN(**hyperparams1)
                     elif model1 == "Spectral Clustering":
-                        model = SpectralClustering(n_clusters=n_clusters, affinity='nearest_neighbors')
+                        model = SpectralClustering(**hyperparams1)
 
                     cluster_df['Cluster'] = model.fit_predict(X_pca)
                     st.scatter_chart(cluster_df, x='PC1', y='PC2', color='Cluster')
