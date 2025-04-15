@@ -2,18 +2,18 @@ import streamlit as st
 import sys
 import os
 import pandas as pd
-import time
 from collections import defaultdict
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from Backend.gspan import run_gspan_analysis, construct_dfs_code, load_graphs_from_json
 from Backend.apriori_graph import parse_graph_file, apriori_graph_mining
 from Backend.gsp import preprocess_sequences_ordered, gsp_algorithm
 from Backend.apriori import run_apriori_analysis
-from Backend.fp_growth import run_fp_growth_analysis  
+from Backend.fp_growth import run_fp_growth_analysis
+from Backend.spade import run_spade_analysis, format_pattern, get_pattern_length
 
 def apriori_graph_mining_app():
     st.title("Apriori-Based Graph Mining")
-    uploaded_file = st.file_uploader("Upload your graph dataset file ", type=['txt'], key="apriori_file")
+    uploaded_file = st.file_uploader("Upload your graph dataset file", type=['txt'], key="apriori_file")
     if uploaded_file is not None:
         graphs = parse_graph_file(uploaded_file)
         st.write(f"Number of graphs loaded: {len(graphs)}")
@@ -51,14 +51,12 @@ def gsp_algorithm_app():
             )
             if st.button("Run GSP Algorithm"):
                 with st.spinner("Processing..."):
-                    start_time = time.time()
                     customer_sequences = preprocess_sequences_ordered(df)
                     sequences = customer_sequences['SEQUENCE'].tolist()
                     with st.expander("View Processed Sequences"):
                         st.write(sequences)
                     results = gsp_algorithm(sequences, min_support)
-                    end_time = time.time()
-                    st.success(f"Processing completed in {end_time - start_time:.2f} seconds!")
+                    st.success("Processing completed!")
                     st.header("GSP Algorithm Results")
                     st.subheader("Frequent 1-Item Sequences")
                     frequent_1 = results['1_item']['frequent']
@@ -88,7 +86,7 @@ def gsp_algorithm_app():
             st.error(f"An error occurred: {str(e)}")
 
 def gspan_algorithm_app():
-    st.title("GSPan Algorithm Implementation")
+    st.title("gSpan Algorithm Implementation")
     uploaded_file = st.file_uploader("Upload your JSON graph dataset file", type=['json'], key="gspan_file")
     if uploaded_file is not None:
         temp_file_path = "temp_graphs.json"
@@ -102,7 +100,7 @@ def gspan_algorithm_app():
         
         if graphs_dict is not None:
             min_support = st.slider("Minimum Support", 1, len(graphs_dict), 2, key="gspan_min_support")
-            if st.button("Run GSPan Algorithm"):
+            if st.button("Run gSpan Algorithm"):
                 with st.spinner("Processing..."):
                     st.header("DFS Codes for Each Graph")
                     all_dfs_codes = {}
@@ -163,7 +161,7 @@ def apriori_algorithm_app():
                     if error:
                         st.error(f"Error: {error}")
                     else:
-                        st.success(f"Processing completed in {execution_time:.2f} seconds!")
+                        st.success("Processing completed!")
                         if not itemsets_df.empty:
                             st.header("Frequent Itemsets")
                             for level in sorted(itemsets_df["Level"].unique()):
@@ -214,7 +212,7 @@ def fp_growth_algorithm_app():
                     if error:
                         st.error(f"Error: {error}")
                     else:
-                        st.success(f"Processing completed in {execution_time:.2f} seconds!")
+                        st.success("Processing completed!")
                         if not itemsets_df.empty:
                             st.header("Frequent Itemsets")
                             for level in sorted(itemsets_df["Level"].unique()):
@@ -233,18 +231,80 @@ def fp_growth_algorithm_app():
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
 
+def spade_algorithm_app():
+    st.title("SPADE Algorithm Implementation")
+    st.write("This app performs sequential pattern mining using the SPADE algorithm.")
+    uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"], key="spade_file")
+    if uploaded_file is not None:
+        try:
+            df = pd.read_csv(uploaded_file)
+            st.success("File successfully uploaded and read!")
+            with st.expander("View Uploaded Data"):
+                st.dataframe(df)
+            min_support = st.slider(
+                "Select minimum support threshold (0-1)",
+                min_value=0.01,
+                max_value=1.0,
+                value=0.5,
+                step=0.01,
+                key="spade_min_support"
+            )
+            if st.button("Run SPADE Algorithm"):
+                with st.spinner("Processing..."):
+                    transactions_df, results, all_frequent_df, error = run_spade_analysis(df, min_support)
+                    if error:
+                        st.error(f"Error: {error}")
+                    elif results is None or not isinstance(results, tuple):
+                        st.error("Error: Invalid results format from SPADE algorithm.")
+                    else:
+                        st.success("Processing completed!")
+                        frequent_1, candidates, all_frequent = results
+                        if transactions_df is not None and not transactions_df.empty:
+                            st.header("Transaction Table")
+                            st.dataframe(transactions_df)
+                        else:
+                            st.write("No transactions to display.")
+                        if frequent_1:
+                            st.header("SPADE Algorithm Results")
+                            st.subheader("Frequent 1-Item Sequences")
+                            df_1 = pd.DataFrame(
+                                [(format_pattern(seq), support) for seq, support in sorted(frequent_1, key=lambda x: str(x[0]))],
+                                columns=["Sequence", "Support"]
+                            )
+                            st.dataframe(df_1)
+                        else:
+                            st.write("No frequent 1-item sequences found.")
+                        if candidates:
+                            st.subheader("Candidate Sequences (k≥2)")
+                            df_candidates = pd.DataFrame(
+                                [(format_pattern(seq), support) for seq, support in sorted(candidates, key=lambda x: str(x[0]))],
+                                columns=["Sequence", "Support"]
+                            )
+                            st.dataframe(df_candidates)
+                        else:
+                            st.write("No candidate sequences found.")
+                        if not all_frequent_df.empty:
+                            st.subheader("All Frequent Sequences")
+                            st.dataframe(all_frequent_df)
+                        else:
+                            st.write("No frequent sequences found.")
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
+
 def main():
     st.sidebar.title("Algorithm Selection")
-    algorithm = st.sidebar.selectbox("Choose an algorithm", ["Apriori Algorithm", "FP-Growth Algorithm", "Apriori Graph Mining", "GSP Algorithm", "GSPan Algorithm"])
+    algorithm = st.sidebar.selectbox("Choose an algorithm", ["Apriori Algorithm", "FP-Growth Algorithm", "SPADE Algorithm", "Apriori Graph Mining", "GSP Algorithm", "gSpan Algorithm"])
     if algorithm == "Apriori Algorithm":
         apriori_algorithm_app()
     elif algorithm == "FP-Growth Algorithm":
         fp_growth_algorithm_app()
+    elif algorithm == "SPADE Algorithm":
+        spade_algorithm_app()
     elif algorithm == "Apriori Graph Mining":
         apriori_graph_mining_app()
     elif algorithm == "GSP Algorithm":
         gsp_algorithm_app()
-    elif algorithm == "GSPan Algorithm":
+    elif algorithm == "gSpan Algorithm":
         gspan_algorithm_app()
 
 if __name__ == "__main__":
