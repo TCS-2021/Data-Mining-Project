@@ -24,7 +24,7 @@ TOPIC_CMD = f'{KAFKA_HOME}/bin/windows/kafka-topics.bat --create --topic {TOPIC_
 
 # Streamlit UI setup
 st.set_page_config(page_title="CluStream Kafka Visualizer", layout="wide")
-st.title("📊 Real-Time CluStream via Kafka")
+st.title("CluStream")
 
 # Global process holders
 processes = {
@@ -74,7 +74,7 @@ def start_consumer():
     processes['consumer'] = launch_background(['python', 'backend/consumer_clu.py'])
     st.success("Consumer started successfully")
         
-    st.title("📊 Live CluStream Plot Viewer")
+    st.title("Live CluStream Plot Viewer")
 
     plot_path = 'plot.png'
     placeholder = st.empty()
@@ -107,7 +107,7 @@ def start_all_services():
     start_consumer()
 
 # UI Controls
-st.subheader("🚀 Pipeline Controls")
+st.subheader("Pipeline Controls")
 col1, col2 = st.columns(2)
 with col1:
     if st.button("Start Full Pipeline", disabled=st.session_state.running):
