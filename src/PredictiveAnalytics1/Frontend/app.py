@@ -61,6 +61,56 @@ def get_hyperparameters_ui(model_name, problem_type, key_prefix=""):
 
     return params
 
+def render_cluster_chart(X_pca, hyperparams, model_name):
+    import streamlit as st
+    import pandas as pd
+    from sklearn.cluster import DBSCAN, SpectralClustering
+
+    cluster_df = pd.DataFrame(X_pca, columns=['PC1', 'PC2'])
+
+    if model_name == "DBSCAN":
+        model = DBSCAN(**hyperparams)
+    elif model_name == "Spectral Clustering":
+        model = SpectralClustering(**hyperparams)
+
+    cluster_df['Cluster'] = model.fit_predict(X_pca)
+
+    st.scatter_chart(cluster_df, x='PC1', y='PC2', color='Cluster')
+
+def render_metrics_and_chart(comparison_df, problem_type, model1, model2, metrics1, metrics2):
+    import streamlit as st
+
+    st.subheader("Model Comparison Results")
+    cols = st.columns(2)
+    with cols[0]:
+        if problem_type == "clustering":
+            st.metric(label=f"{model1} Silhouette Score", value=metrics1['Silhouette Score'])
+            st.metric(label=f"{model1} Clusters", value=metrics1['Number of Clusters'])
+        elif problem_type == "classification":
+            st.metric(label=f"{model1} Accuracy", value=f"{metrics1['Accuracy']:.4f}")
+        elif problem_type == "regression":
+            st.metric(label=f"{model1} MAE", value=f"{metrics1['MAE']:.4f}")
+
+    with cols[1]:
+        if problem_type == "clustering":
+            st.metric(label=f"{model2} Silhouette Score", value=metrics2['Silhouette Score'])
+            st.metric(label=f"{model2} Clusters", value=metrics2['Number of Clusters'])
+        elif problem_type == "classification":
+            st.metric(label=f"{model2} Accuracy", value=f"{metrics2['Accuracy']:.4f}")
+        elif problem_type == "regression":
+            st.metric(label=f"{model2} MAE", value=f"{metrics2['MAE']:.4f}")
+
+    st.dataframe(comparison_df.set_index('Model').T)
+
+    chart_data = comparison_df.melt(id_vars=['Model'], var_name='Metric', value_name='Score')
+    chart_data['Score'] = pd.to_numeric(chart_data['Score'], errors='coerce')
+    chart_data = chart_data.dropna(subset=['Score'])
+
+    if not chart_data.empty:
+        st.bar_chart(chart_data, x='Metric', y='Score', color='Model', stack=False)
+    else:
+        st.warning("No comparable metrics available for these model types")
+
 
 def main():
     st.title("Machine Learning Model Comparison Tool")
@@ -88,19 +138,19 @@ def main():
             return
 
     if df is not None:
-        
+
         if (len(df)>10000):
             st.write(f"Original dataset shape: {df.shape}")
-    
+
             max_sample = 10000
             sample_size = st.slider("Sample size (for performance)", 1000, max_sample, 3000, step=500)
             df = df.sample(n=sample_size, random_state=42).reset_index(drop=True)
-        
+
             st.write(f"Sampled dataset shape: {df.shape}")
-    
+
         with st.expander("View Sampled Raw Data"):
             st.dataframe(df.head())
-            
+
         clustering_mode = st.checkbox("Enable clustering mode (no target variable)")
 
         if clustering_mode:
@@ -122,7 +172,7 @@ def main():
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         X_pca = apply_pca(X_scaled)
-        
+
         st.subheader("Model Selection")
 
         if problem_type == "regression":
