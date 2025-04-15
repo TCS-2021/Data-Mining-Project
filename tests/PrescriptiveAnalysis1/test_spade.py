@@ -110,16 +110,16 @@ class TestSPADE(unittest.TestCase):
         self.assertEqual(get_pattern_length(frozenset(['C'])), 1)
 
     def test_run_spade_analysis(self):
-        transactions_df, results, all_frequent_df, error = run_spade_analysis(self.df, self.min_support)
+        transactions_df, detailed_results, all_frequent_df, error = run_spade_analysis(self.df, self.min_support)
         self.assertIsNone(error)
         self.assertIsNotNone(transactions_df)
-        self.assertIsNotNone(results)
+        self.assertIsNotNone(detailed_results)
         self.assertIsNotNone(all_frequent_df)
         # Check transaction table
         self.assertEqual(len(transactions_df), 10)
         # Check frequent 1-sequences
-        frequent_1, candidates_all, all_frequent = results
-        self.assertEqual(len(frequent_1), 4)  # A, B, C, F
+        frequent_1_df = detailed_results['frequent_1']
+        self.assertEqual(len(frequent_1_df), 4)  # A, B, C, F
         # Check all_frequent_df
         self.assertEqual(list(all_frequent_df.columns), ['Pattern', 'Support', 'Pattern Type', 'Length'])
         self.assertTrue('{A, B}' in all_frequent_df['Pattern'].values)
