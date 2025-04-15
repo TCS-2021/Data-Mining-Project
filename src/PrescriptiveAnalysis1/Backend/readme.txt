@@ -131,4 +131,7 @@ File: "groceries_own.csv"
 Random Dataset (same as used for GSP) 
 Min Support = 0.3
 (Answer cross-checked)
+
+The file must have columns named:
+"INVOICENO", "PRODUCTNAME"
 ----------------------------------------------------------------------------------------------------
