@@ -11,7 +11,7 @@ from sklearn.decomposition import PCA
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src")))
 
 from PredictiveAnalytics1.Backend import backend
-from PredictiveAnalytics1.Frontend import frontend
+from PredictiveAnalytics1.Frontend import app
 
 # ---------- BACKEND TESTS ----------
 
@@ -72,7 +72,7 @@ def test_mock_dataset():
 @patch("streamlit.file_uploader")
 @patch("streamlit.slider")
 @patch("os.listdir")
-@patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data")
+@patch("PredictiveAnalytics1.Frontend.app.cached_load_data")
 def test_frontend_upload_flow_valid(mock_load, mock_listdir, mock_slider, mock_uploader, mock_select, mock_radio, mock_dataset):
     mock_radio.return_value = "Use a predefined dataset"
     mock_select.side_effect = ["FIFA.csv", "Target", "Random Forest", "SVM Regressor"]
@@ -80,7 +80,7 @@ def test_frontend_upload_flow_valid(mock_load, mock_listdir, mock_slider, mock_u
     mock_uploader.return_value = None
     mock_listdir.return_value = ["FIFA.csv"]
     mock_load.return_value = mock_dataset
-    frontend.main()
+    app.main()
 
 
 @patch("streamlit.radio")
@@ -88,14 +88,14 @@ def test_frontend_upload_flow_valid(mock_load, mock_listdir, mock_slider, mock_u
 @patch("streamlit.slider")
 @patch("streamlit.file_uploader")
 @patch("os.listdir")
-@patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data")
+@patch("PredictiveAnalytics1.Frontend.app.cached_load_data")
 def test_frontend_predefined_selection_flow(mock_load, mock_listdir, mock_uploader, mock_slider, mock_select, mock_radio, mock_dataset):
     mock_radio.return_value = "Use a predefined dataset"
     mock_select.side_effect = ["FIFA.csv", "Target", "Random Forest", "SVM Regressor"]
     mock_slider.return_value = 10
     mock_listdir.return_value = ["FIFA.csv"]
     mock_load.return_value = mock_dataset
-    frontend.main()
+    app.main()
 
 
 @patch("streamlit.slider")
@@ -110,7 +110,7 @@ def test_sample_size_slider_respects_upper_bound(mock_slider):
 @patch("streamlit.selectbox")
 @patch("streamlit.file_uploader")
 @patch("os.listdir")
-@patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data")
+@patch("PredictiveAnalytics1.Frontend.app.cached_load_data")
 def test_frontend_model_dropdown_exclusion(mock_load, mock_listdir, mock_upload, mock_select, mock_radio, mock_dataset):
     mock_radio.return_value = "Use a predefined dataset"
     mock_upload.return_value = None
@@ -120,7 +120,7 @@ def test_frontend_model_dropdown_exclusion(mock_load, mock_listdir, mock_upload,
     #  Valid selection sequence
     mock_select.side_effect = ["FIFA.csv", "Target", "Random Forest", "SVM Regressor"]
 
-    frontend.main()
+    app.main()
     assert mock_select.call_count >= 4
 
 
@@ -129,23 +129,23 @@ def test_frontend_model_dropdown_exclusion(mock_load, mock_listdir, mock_upload,
 def test_expander_hyperparams_render(mock_select, mock_input):
     mock_input.return_value = 100
     mock_select.return_value = "linear"
-    result = frontend.get_hyperparameters_ui("Random Forest", "regression", key_prefix="test")
+    result = app.get_hyperparameters_ui("Random Forest", "regression", key_prefix="test")
     assert "n_estimators" in result
 
 @patch("streamlit.selectbox")
 @patch("streamlit.number_input")
 def test_frontend_lasso_ridge_selection(mock_input, mock_select):
     mock_input.return_value = 0.5
-    result = frontend.get_hyperparameters_ui("Lasso", "regression", key_prefix="test")
+    result = app.get_hyperparameters_ui("Lasso", "regression", key_prefix="test")
     assert "alpha" in result
 
-    result = frontend.get_hyperparameters_ui("Ridge", "regression", key_prefix="test")
+    result = app.get_hyperparameters_ui("Ridge", "regression", key_prefix="test")
     assert "alpha" in result
 
 @patch("streamlit.number_input")
 def test_adaboost_hyperparam_input(mock_input):
     mock_input.return_value = 100
-    result = frontend.get_hyperparameters_ui("AdaBoost", "regression", key_prefix="test")
+    result = app.get_hyperparameters_ui("AdaBoost", "regression", key_prefix="test")
     assert "n_estimators" in result
 
 @patch("streamlit.radio")
@@ -154,7 +154,7 @@ def test_adaboost_hyperparam_input(mock_input):
 @patch("streamlit.button")
 @patch("streamlit.file_uploader")
 @patch("os.listdir")
-@patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data")
+@patch("PredictiveAnalytics1.Frontend.app.cached_load_data")
 def test_frontend_single_model_selection(mock_data, mock_list, mock_upload, mock_button, mock_slider, mock_select, mock_radio):
     df = pd.DataFrame({
         "feature1": [1, 2, 3, 4, 5],
@@ -168,7 +168,7 @@ def test_frontend_single_model_selection(mock_data, mock_list, mock_upload, mock
     mock_select.side_effect = ["FIFA.csv", "Target", "Random Forest", "Decision Tree Regressor"]
     mock_list.return_value = ["FIFA.csv"]
     mock_data.return_value = df
-    frontend.main()
+    app.main()
 
 @patch("streamlit.radio")
 @patch("streamlit.selectbox")
@@ -176,7 +176,7 @@ def test_frontend_single_model_selection(mock_data, mock_list, mock_upload, mock
 @patch("streamlit.button")
 @patch("streamlit.file_uploader")
 @patch("os.listdir")
-@patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data")
+@patch("PredictiveAnalytics1.Frontend.app.cached_load_data")
 def test_frontend_regression_model_selection(mock_data, mock_list, mock_upload, mock_button, mock_slider, mock_select, mock_radio):
     df = pd.DataFrame({
         "feature1": [1, 2, 3, 4, 5],
@@ -190,7 +190,7 @@ def test_frontend_regression_model_selection(mock_data, mock_list, mock_upload, 
     mock_select.side_effect = ["FIFA.csv", "Target", "Lasso", "Ridge"]
     mock_list.return_value = ["FIFA.csv"]
     mock_data.return_value = df
-    frontend.main()
+    app.main()
 
 @patch("streamlit.radio")
 @patch("streamlit.selectbox")
@@ -198,7 +198,7 @@ def test_frontend_regression_model_selection(mock_data, mock_list, mock_upload, 
 @patch("streamlit.button")
 @patch("streamlit.file_uploader")
 @patch("os.listdir")
-@patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data")
+@patch("PredictiveAnalytics1.Frontend.app.cached_load_data")
 def test_frontend_classification_model_selection(mock_data, mock_list, mock_upload, mock_button, mock_slider, mock_select, mock_radio):
     df = pd.DataFrame({
         "feature1": [1, 2, 3, 4, 5],
@@ -212,7 +212,7 @@ def test_frontend_classification_model_selection(mock_data, mock_list, mock_uplo
     mock_select.side_effect = ["FIFA.csv", "Target", "Logistic Regression", "Naive Bayes"]
     mock_list.return_value = ["FIFA.csv"]
     mock_data.return_value = df
-    frontend.main()
+    app.main()
 
 @patch("streamlit.radio")
 @patch("streamlit.selectbox")
@@ -220,7 +220,7 @@ def test_frontend_classification_model_selection(mock_data, mock_list, mock_uplo
 @patch("streamlit.button")
 @patch("streamlit.file_uploader")
 @patch("os.listdir")
-@patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data")
+@patch("PredictiveAnalytics1.Frontend.app.cached_load_data")
 def test_frontend_button_not_clicked(mock_data, mock_list, mock_upload, mock_button, mock_slider, mock_select, mock_radio):
     df = pd.DataFrame({
         "feature1": [1, 2, 3, 4, 5],
@@ -234,7 +234,7 @@ def test_frontend_button_not_clicked(mock_data, mock_list, mock_upload, mock_but
     mock_select.side_effect = ["FIFA.csv", "Target", "Random Forest", "AdaBoost"]
     mock_list.return_value = ["FIFA.csv"]
     mock_data.return_value = df
-    frontend.main()
+    app.main()
 
 @patch("streamlit.radio")
 @patch("streamlit.selectbox")
@@ -245,20 +245,20 @@ def test_frontend_user_upload_flow(mock_button, mock_file_uploader, mock_selectb
     mock_file_uploader.return_value = None
     mock_selectbox.return_value = "Target"
     mock_button.return_value = False
-    frontend.main()
+    app.main()
 
 @patch("streamlit.radio")
 @patch("streamlit.file_uploader")
 def test_frontend_default_upload_mode(mock_uploader, mock_radio):
     mock_radio.return_value = "Upload your own CSV"
     mock_uploader.return_value = None
-    frontend.main()
+    app.main()
 
 @patch("streamlit.radio")
 def test_frontend_default_predefined_mode(mock_radio):
     mock_radio.return_value = "Use a predefined dataset"
     with patch("os.listdir", return_value=[]), patch("streamlit.warning") as mock_warning:
-        frontend.main()
+        app.main()
         mock_warning.assert_called_once()
 @patch("streamlit.radio")
 @patch("streamlit.selectbox")
@@ -276,8 +276,8 @@ def test_frontend_minimal_regression_dataset(mock_button, mock_selectbox, mock_r
 
     with patch("os.listdir", return_value=["FIFA.csv"]), \
          patch("streamlit.file_uploader"), \
-         patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data", return_value=df):
-        frontend.main()
+         patch("PredictiveAnalytics1.Frontend.app.cached_load_data", return_value=df):
+        app.main()
 
 @patch("streamlit.radio")
 @patch("streamlit.selectbox")
@@ -289,7 +289,7 @@ def test_frontend_empty_dataset_warning(mock_button, mock_selectbox, mock_radio)
 
     with patch("os.listdir", return_value=[]), \
          patch("streamlit.warning") as mock_warning:
-        frontend.main()
+        app.main()
         mock_warning.assert_called_with("No datasets found.")
 
 
@@ -313,8 +313,8 @@ def test_frontend_raw_data_display(mock_button, mock_dataframe, mock_expander, m
     })
 
     with patch("os.listdir", return_value=["FIFA.csv"]), \
-         patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data", return_value=df):
-        frontend.main()
+         patch("PredictiveAnalytics1.Frontend.app.cached_load_data", return_value=df):
+        app.main()
         mock_expander.assert_called()
 
 @patch("streamlit.radio")
@@ -334,15 +334,15 @@ def test_frontend_predefined_dataset_dropdown(mock_button, mock_file_uploader, m
     })
 
     with patch("os.listdir", return_value=["FIFA.csv"]), \
-         patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data", return_value=df):
-        frontend.main()
+         patch("PredictiveAnalytics1.Frontend.app.cached_load_data", return_value=df):
+        app.main()
 
 @patch("streamlit.radio")
 @patch("streamlit.warning")
 def test_frontend_warning_no_datasets(mock_warning, mock_radio):
     mock_radio.return_value = "Use a predefined dataset"
     with patch("os.listdir", return_value=[]):
-        frontend.main()
+        app.main()
         mock_warning.assert_called_once()
 
 @patch("streamlit.radio")
@@ -350,7 +350,7 @@ def test_frontend_warning_no_datasets(mock_warning, mock_radio):
 def test_frontend_no_datasets_found(mock_warning, mock_radio):
     mock_radio.return_value = "Use a predefined dataset"
     with patch("os.listdir", return_value=[]):
-        frontend.main()
+        app.main()
         mock_warning.assert_called_with("No datasets found.")
 
 
@@ -388,14 +388,14 @@ def test_clustering_mode_enabled(mock_file_uploader, mock_button, mock_slider, m
     })
 
     with patch("os.listdir", return_value=["FIFA.csv"]), \
-         patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data", return_value=df):
-        frontend.main()
+         patch("PredictiveAnalytics1.Frontend.app.cached_load_data", return_value=df):
+        app.main()
 
 
 def test_cached_load_data_reads_file_correctly():
     dummy_df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
-    with patch("PredictiveAnalytics1.Frontend.frontend.load_data", return_value=dummy_df) as mock_loader:
-        result = frontend.cached_load_data("dummy/path.csv")
+    with patch("PredictiveAnalytics1.Frontend.app.load_data", return_value=dummy_df) as mock_loader:
+        result = app.cached_load_data("dummy/path.csv")
         mock_loader.assert_called_once_with("dummy/path.csv")
         pd.testing.assert_frame_equal(result, dummy_df)
 
@@ -417,12 +417,12 @@ import numpy as np
 @patch("streamlit.write")
 @patch("streamlit.file_uploader")
 @patch("os.listdir")
-@patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data")
+@patch("PredictiveAnalytics1.Frontend.app.cached_load_data")
 def test_large_dataset_sample_block(
     mock_data, mock_list, mock_upload, mock_write,
     mock_slider, mock_selectbox, mock_radio
 ):
-    from PredictiveAnalytics1.Frontend import frontend
+    from PredictiveAnalytics1.Frontend import app
 
     # Mock a dataset > 10,000 rows
     large_df = pd.DataFrame({
@@ -439,15 +439,15 @@ def test_large_dataset_sample_block(
     mock_list.return_value = ["FIFA.csv"]
     mock_data.return_value = large_df
 
-    frontend.main()
+    app.main()
 
     # Assert write is called to show both shapes
     mock_write.assert_any_call(f"Original dataset shape: {large_df.shape}")
     mock_write.assert_any_call(f"Sampled dataset shape: {(3000, 3)}")
 
-@patch("PredictiveAnalytics1.Frontend.frontend.st.scatter_chart")
+@patch("PredictiveAnalytics1.Frontend.app.st.scatter_chart")
 def test_render_cluster_chart(mock_chart):
-    from PredictiveAnalytics1.Frontend.frontend import render_cluster_chart
+    from PredictiveAnalytics1.Frontend.app import render_cluster_chart
 
     X, _ = make_blobs(n_samples=10, centers=2, random_state=42)
     pca = PCA(n_components=2)
@@ -462,14 +462,14 @@ def test_render_cluster_chart(mock_chart):
 @patch("streamlit.subheader")
 def test_metric_and_bar_chart_display(mock_subheader, mock_metric, mock_bar_chart):
     import pandas as pd
-    from PredictiveAnalytics1.Frontend import frontend
+    from PredictiveAnalytics1.Frontend import app
 
     df = pd.DataFrame([
         {"Model": "Model1", "Accuracy": 0.85},
         {"Model": "Model2", "Accuracy": 0.80}
     ])
 
-    frontend.render_metrics_and_chart(
+    app.render_metrics_and_chart(
         comparison_df=df,
         problem_type="classification",
         model1="Model1",
@@ -494,14 +494,14 @@ def test_metric_and_bar_chart_display(mock_subheader, mock_metric, mock_bar_char
 @patch("streamlit.scatter_chart")
 @patch("streamlit.columns")
 @patch("os.listdir")
-@patch("PredictiveAnalytics1.Frontend.frontend.cached_load_data")
+@patch("PredictiveAnalytics1.Frontend.app.cached_load_data")
 def test_clustering_comparison_block_large_coverage(
     mock_load, mock_listdir, mock_columns,
     mock_scatter, mock_bar, mock_data, mock_metric,
     mock_subheader, mock_upload, mock_button, mock_slider,
     mock_select, mock_checkbox, mock_radio
 ):
-    from PredictiveAnalytics1.Frontend import frontend
+    from PredictiveAnalytics1.Frontend import app
 
     X, _ = make_blobs(n_samples=30, centers=2, random_state=42)
     df = pd.DataFrame(X, columns=["feature1", "feature2"])
@@ -516,7 +516,7 @@ def test_clustering_comparison_block_large_coverage(
     mock_slider.side_effect = [0.3, 3, 2]
     mock_columns.return_value = [patch("streamlit.container"), patch("streamlit.container")]
 
-    frontend.main()
+    app.main()
 
     # Assertions
     assert mock_metric.call_count >= 4, "Expected clustering metrics not rendered"
