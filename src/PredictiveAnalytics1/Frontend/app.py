@@ -2,24 +2,16 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
-import sys
 from pathlib import Path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from Backend.backend import (
-    load_data, preprocess_data, apply_pca, determine_problem_type, train_model)
+from ..Backend.backend import load_data, preprocess_data, apply_pca, determine_problem_type, train_model
 from sklearn.preprocessing import LabelEncoder
 from sklearn.cluster import DBSCAN, SpectralClustering
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
 
-
-st.set_page_config(page_title="Model Comparison Tool", layout="wide")
-
-
 @st.cache_data
 def cached_load_data(file_path):
     return load_data(file_path)
-
 
 def main():
     st.title("Machine Learning Model Comparison Tool")
@@ -36,7 +28,11 @@ def main():
     else:
         current_file = Path(__file__).resolve()
         dataset_dir = current_file.parents[3] / 'Datasets' / 'predictive-analytics-1'
-        dataset_files = [f for f in os.listdir(dataset_dir) if f.endswith(".csv")]
+        if not dataset_dir.exists():
+            st.warning("Dataset directory not found. Please upload a CSV file.")
+            dataset_files = []
+        else:
+            dataset_files = [f for f in os.listdir(dataset_dir) if f.endswith(".csv")]
 
         if dataset_files:
             selected_dataset = st.selectbox("Select a dataset", dataset_files)
@@ -71,7 +67,6 @@ def main():
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         X_pca = apply_pca(X_scaled)
-
 
         st.subheader("Model Selection")
 
@@ -166,12 +161,10 @@ def main():
 
                 st.dataframe(comparison_df.set_index('Model').T)
 
-
                 st.subheader("Performance Visualization")
                 chart_data = comparison_df.melt(id_vars=['Model'], var_name='Metric', value_name='Score')
                 chart_data['Score'] = pd.to_numeric(chart_data['Score'], errors='coerce')
                 chart_data = chart_data.dropna(subset=['Score'])
-
 
                 if not chart_data.empty:
                     st.bar_chart(chart_data, x='Metric', y='Score', color='Model', stack=False)
