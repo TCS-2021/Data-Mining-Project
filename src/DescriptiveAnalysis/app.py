@@ -14,7 +14,6 @@ st.set_page_config(
     layout="wide",
 )
 
-# Custom CSS for a fancy and modern look
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap');
@@ -202,7 +201,7 @@ def olap_operations(fact_df: pd.DataFrame,
                     dimension_tables: dict,
                     fact_measures: list,
                     original_df: pd.DataFrame):
-    """Handle drill-down, roll-up on the data."""
+    """Handle drill-down, roll-up on the data with full hierarchy context."""
     st.header("Drill-Down and Roll-Up")
     if not dimension_tables:
         st.warning("No dimensions configured. Please set up dimensions first.")
@@ -210,6 +209,7 @@ def olap_operations(fact_df: pd.DataFrame,
     if not fact_measures:
         st.warning("No measures configured. Please set up measures first.")
         return
+
     selected_dim = st.selectbox(
         "Select Dimension for Drill-Down and Roll-Up",
         list(dimension_tables.keys()),
@@ -218,10 +218,11 @@ def olap_operations(fact_df: pd.DataFrame,
     dim_config = dimension_tables[selected_dim]
     if len(dim_config['hierarchy']) <= 1:
         st.warning(
-            "This dimension doesn't have hierarchy levels defined. "
+            "This dimension doesn't have multiple hierarchy levels defined. "
             "Add more columns to the dimension to enable drill-down/roll-up."
         )
         return
+
     selected_measure = st.selectbox(
         "Select Measure",
         fact_measures,
@@ -229,6 +230,7 @@ def olap_operations(fact_df: pd.DataFrame,
     )
     if 'current_level' not in st.session_state:
         st.session_state.current_level = 0
+
     dim_df = original_df[dim_config['columns']].drop_duplicates()
     merged_df = pd.merge(
         fact_df,
@@ -237,14 +239,18 @@ def olap_operations(fact_df: pd.DataFrame,
         right_on=dim_config['primary_key'],
         how='left'
     )
-    current_level_col = dim_config['hierarchy'][st.session_state.current_level]
-    st.write(f"**Current Level:** {current_level_col}")
-    cube = merged_df.groupby([current_level_col]).agg({selected_measure: 'sum'}).reset_index()
+
+    # Group by all hierarchy levels up to the current drill level
+    grouping_levels = dim_config['hierarchy'][:st.session_state.current_level + 1]
+    st.write(f"**Current Grouping Levels:** {', '.join(grouping_levels)}")
+    # Create the aggregated cube based on the grouping levels
+    cube = merged_df.groupby(grouping_levels).agg({selected_measure: 'sum'}).reset_index()
     if not cube.empty:
-        st.dataframe(cube[[current_level_col, selected_measure]], height=300)
+        st.dataframe(cube, height=300)
+
     col1, col2 = st.columns(2)
     with col1:
-        if( st.button("Drill Down") and
+        if (st.button("Drill Down") and
             st.session_state.current_level < len(dim_config['hierarchy']) - 1):
             st.session_state.current_level += 1
             st.rerun()
@@ -252,11 +258,14 @@ def olap_operations(fact_df: pd.DataFrame,
         if st.button("Roll Up") and st.session_state.current_level > 0:
             st.session_state.current_level -= 1
             st.rerun()
+
+    # Display the current path in the hierarchy
     hierarchy_path = " → ".join(
         [f"**{level}**" if i == st.session_state.current_level else level
          for i, level in enumerate(dim_config['hierarchy'])]
     )
     st.write(f"**Hierarchy Path:** {hierarchy_path}")
+
 
 @st.cache_data
 def generate_data_cubes(fact_df: pd.DataFrame, dimension_tables: dict, fact_measures: list) -> dict:
@@ -290,10 +299,8 @@ def download_zip_files(cubes, batch_size):
     """Package cubes into multiple zip files based on the batch size and trigger downloads."""
     cube_items = list(cubes.items())
     num_batches = math.ceil(len(cube_items) / batch_size)
-    # Package batches using a list comprehension
     zip_files = [package_batch(cube_items[i * batch_size:(i + 1) * batch_size], i + 1)
                  for i in range(num_batches)]
-    # Build HTML with JavaScript to trigger the downloads
     download_html = "<html><body><script>"
     for zip_data_base64, zip_filename in zip_files:
         download_html += f"""
@@ -369,7 +376,6 @@ def batch_processing():
                                  min_value=1, value=1,
                                  key="batch_size")
 
-    # Initialize timer variables if not already set
     if "batch_total_seconds" not in st.session_state:
         st.session_state.batch_total_seconds = chosen_minutes * 60
         st.session_state.batch_remaining_seconds = st.session_state.batch_total_seconds
