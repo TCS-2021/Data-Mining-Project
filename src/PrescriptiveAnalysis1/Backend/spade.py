@@ -1,34 +1,45 @@
 import pandas as pd
 from collections import defaultdict
+import traceback
 
 def preprocess_data_vertical(df):
     """
     Convert horizontal data format to vertical format (SID, EID, item).
-    SID = Sequence ID (customer ID)
+    SID = Sequence ID (from NAME column)
     EID = Event ID (timestamp/order of events)
     """
     try:
-        # Convert dates to datetime
-        try:
-            df['INVOICEDATE'] = pd.to_datetime(df['INVOICEDATE'], errors='coerce')
-        except:
-            df['INVOICEDATE'] = pd.to_datetime(df['INVOICEDATE'], errors='coerce', dayfirst=True)
-        
-        df_sorted = df.sort_values(['NAME', 'INVOICEDATE'])
-        df_sorted['EID'] = df_sorted.groupby('NAME').cumcount() + 1
+        if 'NAME' not in df.columns:
+            return None, "Error: NAME column missing in dataset"
+        df = df.copy()
+        df['SID'] = df['NAME'].astype(str)
+
+        if df['SID'].isnull().any():
+            return None, "Error: Invalid or missing NAME values"
+
+        if 'INVOICEDATE' in df.columns:
+            try:
+                df['INVOICEDATE'] = pd.to_datetime(df['INVOICEDATE'], errors='coerce')
+            except:
+                df['INVOICEDATE'] = pd.to_datetime(df['INVOICEDATE'], errors='coerce', dayfirst=True)
+            df_sorted = df.sort_values(['SID', 'INVOICEDATE'])
+        else:
+            df_sorted = df.sort_values(['SID'])
+
+        df_sorted['EID'] = df_sorted.groupby('SID').cumcount() + 1
 
         vertical_format = []
         for _, row in df_sorted.iterrows():
             if isinstance(row['PRODUCTNAME'], str) and ',' in row['PRODUCTNAME']:
                 for item in row['PRODUCTNAME'].split(','):
                     vertical_format.append({
-                        'SID': row['NAME'],
+                        'SID': row['SID'],
                         'EID': row['EID'],
                         'item': item.strip()
                     })
             else:
                 vertical_format.append({
-                    'SID': row['NAME'],
+                    'SID': row['SID'],
                     'EID': row['EID'],
                     'item': str(row['PRODUCTNAME']).strip()
                 })
@@ -42,7 +53,7 @@ def get_transaction_table(vertical_df):
     Create a transaction table by grouping items by SID and EID.
     """
     try:
-        transactions = vertical_df.groupby(['SID', 'EID'])['item'].apply(lambda x: ', '.join(sorted(set(x)))).reset_index()
+        transactions = vertical_df.groupby(['SID', 'EID'])['item'].apply(lambda x: set(x)).reset_index()
         transactions.columns = ['Customer ID (SID)', 'Event ID (EID)', 'Items']
         return transactions, None
     except Exception as e:
@@ -58,57 +69,138 @@ def create_idlists(vertical_df):
     except Exception as e:
         return None, f"Error in creating ID-lists: {str(e)}"
 
-def calculate_support(idlist, total_sequences):
-    """Calculate support as number of unique sequences / total sequences."""
-    unique_sids = len(set(sid for sid, _ in idlist))
-    return unique_sids / total_sequences if total_sequences > 0 else 0
-
-def generate_1_sequences(idlists, min_support, total_sequences):
-    """Generate frequent 1-sequences."""
+def calculate_support(pattern, transactions_df):
+    """
+    Calculate support by checking pattern in transaction table.
+    Support = (number of SIDs containing pattern) / (total SIDs)
+    """
     try:
+        total_sids = transactions_df['Customer ID (SID)'].nunique()
+        if total_sids == 0:
+            return 0
+
+        matching_sids = set()
+        grouped = transactions_df.groupby('Customer ID (SID)')
+
+        if isinstance(pattern, frozenset):
+            pattern_items = set(pattern)
+            for sid, group in grouped:
+                for _, row in group.iterrows():
+                    if pattern_items.issubset(row['Items']):
+                        matching_sids.add(sid)
+                        break
+        elif isinstance(pattern, tuple):
+            for sid, group in grouped:
+                group = group.sort_values('Event ID (EID)')
+                found = [False] * len(pattern)
+                current_pos = 0
+                for _, row in group.iterrows():
+                    items = row['Items']
+                    if current_pos < len(pattern):
+                        current_element = pattern[current_pos]
+                        element_items = set(current_element) if isinstance(current_element, frozenset) else {current_element}
+                        if element_items.issubset(items):
+                            found[current_pos] = True
+                            current_pos += 1
+                if all(found):
+                    matching_sids.add(sid)
+
+        return len(matching_sids) / total_sids if total_sids > 0 else 0
+    except Exception as e:
+        return 0
+
+def generate_1_sequences(transactions_df, min_support):
+    """Generate frequent 1-sequences using transaction table."""
+    try:
+        unique_items = set()
+        for items in transactions_df['Items']:
+            unique_items.update(items)
+        
         frequent_1_sequences = []
-        for item, idlist in idlists.items():
-            support = calculate_support(idlist, total_sequences)
+        for item in unique_items:
+            pattern = frozenset([item])
+            support = calculate_support(pattern, transactions_df)
             if support >= min_support:
-                frequent_1_sequences.append((frozenset([item]), support * total_sequences))
+                frequent_1_sequences.append((pattern, support * transactions_df['Customer ID (SID)'].nunique()))
         return frequent_1_sequences, None
     except Exception as e:
         return None, f"Error in generating 1-sequences: {str(e)}"
 
-def join_idlists(idlist1, idlist2, join_type='temporal'):
+def join_idlists(idlist1=None, idlist2=None, join_type='temporal', first_itemset=None, second_itemset=None, idlists=None):
     """
-    Join two ID-lists based on join type:
-    - 'temporal': for sequence extension (different events)
-    - 'itemset': for itemset extension (same event)
+    Join ID-lists based on join type:
+    - 'temporal': sequence extension (different events)
+    - 'itemset': itemset extension (same event)
+    - 'sequence_itemset': sequence -> itemset or itemset -> itemset
     """
     result = []
-    dict1 = defaultdict(list)
-    for sid, eid in idlist1:
-        dict1[sid].append(eid)
+    
+    if join_type == 'sequence_itemset' and first_itemset is not None and second_itemset is not None and idlists is not None:
+        first_items = sorted(list(first_itemset)) if isinstance(first_itemset, (frozenset, set)) else [first_itemset]
+        second_items = sorted(list(second_itemset)) if isinstance(second_itemset, (frozenset, set)) else [second_itemset]
 
-    for sid, eid in idlist2:
-        if sid in dict1:
-            if join_type == 'temporal':
-                for eid1 in dict1[sid]:
-                    if eid > eid1:
-                        result.append((sid, eid))
+        first_idlist = [(sid, eid) for sid, eid in idlists[first_items[0]]]
+        for item in first_items[1:]:
+            next_idlist = [(sid, eid) for sid, eid in idlists[item]]
+            first_idlist = [(sid, eid) for sid, eid in first_idlist if (sid, eid) in next_idlist]
+
+        second_idlist = [(sid, eid) for sid, eid in idlists[second_items[0]]]
+        for item in second_items[1:]:
+            next_idlist = [(sid, eid) for sid, eid in idlists[item]]
+            second_idlist = [(sid, eid) for sid, eid in second_idlist if (sid, eid) in next_idlist]
+
+        first_by_sid = defaultdict(list)
+        for sid, eid in sorted(first_idlist, key=lambda x: (x[0], x[1])):
+            first_by_sid[sid].append(eid)
+
+        sid_added = set()
+        for sid, eid2 in sorted(second_idlist, key=lambda x: (x[0], x[1])):
+            if sid in first_by_sid:
+                for eid1 in first_by_sid[sid]:
+                    if eid2 > eid1 and sid not in sid_added:
+                        result.append((sid, eid2))
+                        sid_added.add(sid)
                         break
-            else:
-                if eid in dict1[sid]:
-                    result.append((sid, eid))
+    elif join_type == 'temporal':
+        first_by_sid = defaultdict(list)
+        for sid, eid in sorted(idlist1, key=lambda x: (x[0], x[1])):
+            first_by_sid[sid].append(eid)
+        sid_added = set()
+        for sid, eid2 in sorted(idlist2, key=lambda x: (x[0], x[1])):
+            if sid in first_by_sid and sid not in sid_added:
+                for eid1 in first_by_sid[sid]:
+                    if eid2 > eid1:
+                        result.append((sid, eid2))
+                        sid_added.add(sid)
+                        break
+    elif join_type == 'itemset':
+        sid_eid_set = set(idlist2)
+        for sid, eid in idlist1:
+            if (sid, eid) in sid_eid_set:
+                result.append((sid, eid))
+
     return result
 
-def generate_candidate_k_sequences(frequent_sequences_k_minus_1, k, idlists):
+def generate_candidate_k_sequences(frequent_sequences_k_minus_1, k, idlists, transactions_df):
     """Generate candidate k-sequences from frequent (k-1)-sequences."""
     try:
         candidates = []
-        items = [seq for seq, _ in frequent_sequences_k_minus_1]
-        
+        seen_itemsets = set()
+        seen_sequences = set()
+
+        itemsets = [(p, s) for p, s in frequent_sequences_k_minus_1 if isinstance(p, frozenset)]
+        sequences = [(p, s) for p, s in frequent_sequences_k_minus_1 if isinstance(p, tuple)]
+
+        # Collect single frequent items
+        single_items = []
+        for p, _ in frequent_sequences_k_minus_1:
+            if isinstance(p, frozenset) and len(p) == 1:
+                single_items.append(list(p)[0])
+
         if k == 2:
-            # Generate unique itemsets and sequences
-            seen_itemsets = set()
+            items = [seq for seq, _ in frequent_sequences_k_minus_1]
             for i, item_i in enumerate(items):
-                for j, item_j in enumerate(items[i+1:], start=i+1):  # Ensure i < j to avoid duplicates
+                for j, item_j in enumerate(items[i+1:], start=i+1):
                     item_i_str = list(item_i)[0]
                     item_j_str = list(item_j)[0]
                     if item_i_str == item_j_str:
@@ -117,50 +209,136 @@ def generate_candidate_k_sequences(frequent_sequences_k_minus_1, k, idlists):
                     idlist_i = idlists[item_i_str]
                     idlist_j = idlists[item_j_str]
                     
-                    # Itemset extension: only generate in canonical order
                     itemset_tuple = tuple(sorted([item_i_str, item_j_str]))
                     if itemset_tuple not in seen_itemsets:
                         new_itemset = frozenset(itemset_tuple)
                         new_idlist = join_idlists(idlist_i, idlist_j, join_type='itemset')
-                        candidates.append((new_itemset, new_idlist))
+                        if new_idlist:
+                            candidates.append((new_itemset, new_idlist))
                         seen_itemsets.add(itemset_tuple)
                     
-                    # Sequence extension: both orders are valid
                     new_sequence = (item_i_str, item_j_str)
                     new_idlist = join_idlists(idlist_i, idlist_j, join_type='temporal')
-                    candidates.append((new_sequence, new_idlist))
+                    if new_sequence not in seen_sequences and new_idlist:
+                        candidates.append((new_sequence, new_idlist))
+                        seen_sequences.add(new_sequence)
                     
                     new_sequence = (item_j_str, item_i_str)
                     new_idlist = join_idlists(idlist_j, idlist_i, join_type='temporal')
-                    candidates.append((new_sequence, new_idlist))
+                    if new_sequence not in seen_sequences and new_idlist:
+                        candidates.append((new_sequence, new_idlist))
+                        seen_sequences.add(new_sequence)
         else:
-            sequence_patterns = [(p, s) for p, s in frequent_sequences_k_minus_1 if isinstance(p, tuple) and len(p) == k-1]
-            for i, (seq_i, _) in enumerate(sequence_patterns):
-                for j, (seq_j, _) in enumerate(sequence_patterns):
+            # Itemset joins
+            for i, (itemset_i, _) in enumerate(itemsets):
+                for j, (itemset_j, _) in enumerate(itemsets[i+1:], start=i+1):
+                    items_i = sorted(list(itemset_i))
+                    items_j = sorted(list(itemset_j))
+                    if items_i[:-1] == items_j[:-1]:
+                        new_items = sorted(list(itemset_i) + [items_j[-1]])
+                        new_itemset = frozenset(new_items)
+                        itemset_tuple = tuple(new_items)
+                        if itemset_tuple not in seen_itemsets:
+                            new_idlist = join_idlists(idlists[items_i[0]], idlists[items_j[-1]], join_type='itemset')
+                            for item in new_items[1:-1]:
+                                next_idlist = idlists[item]
+                                new_idlist = [(sid, eid) for sid, eid in new_idlist if (sid, eid) in next_idlist]
+                            if new_idlist:
+                                candidates.append((new_itemset, new_idlist))
+                            seen_itemsets.add(itemset_tuple)
+            
+            # Sequence joins
+            for i, (seq_i, _) in enumerate(sequences):
+                for j, (seq_j, _) in enumerate(sequences):
                     if i == j:
                         continue
                     if seq_i[:-1] == seq_j[:-1]:
                         new_sequence = seq_i + (seq_j[-1],)
-                        idlist_i = idlists[seq_i[-1]]
-                        idlist_j = idlists[seq_j[-1]]
-                        new_idlist = join_idlists(idlist_i, idlist_j, join_type='temporal')
-                        candidates.append((new_sequence, new_idlist))
+                        if new_sequence not in seen_sequences:
+                            last_item_i = seq_i[-1] if isinstance(seq_i[-1], str) else sorted(seq_i[-1])[0]
+                            last_item_j = seq_j[-1] if isinstance(seq_j[-1], str) else sorted(seq_j[-1])[0]
+                            new_idlist = join_idlists(idlists[last_item_i], idlists[last_item_j], join_type='temporal')
+                            if new_idlist:
+                                candidates.append((new_sequence, new_idlist))
+                            seen_sequences.add(new_sequence)
+            
+            # Sequence -> Itemset
+            for seq, _ in sequences:
+                last_seq_element = seq[-1]
+                last_items = [last_seq_element] if isinstance(last_seq_element, str) else sorted(last_seq_element)
+                for itemset, _ in itemsets:
+                    if len(seq) == 1:
+                        new_sequence = (last_seq_element, itemset)
+                    else:
+                        new_sequence = seq[:-1] + (itemset,)
+                    sequence_tuple = new_sequence
+                    if sequence_tuple not in seen_sequences:
+                        new_idlist = join_idlists(
+                            idlists[last_items[0]], None,
+                            join_type='sequence_itemset',
+                            first_itemset=frozenset(last_items),
+                            second_itemset=itemset,
+                            idlists=idlists
+                        )
+                        if new_idlist:
+                            candidates.append((new_sequence, new_idlist))
+                        seen_sequences.add(sequence_tuple)
+            
+            # Itemset -> Sequence
+            for itemset, _ in itemsets:
+                itemset_items = sorted(itemset)
+                for seq, _ in sequences:
+                    first_seq_element = seq[0]
+                    first_items = [first_seq_element] if isinstance(first_seq_element, str) else sorted(first_seq_element)
+                    new_sequence = (itemset,) + seq[1:]
+                    sequence_tuple = new_sequence
+                    if sequence_tuple not in seen_sequences:
+                        new_idlist = join_idlists(
+                            idlists[itemset_items[0]], None,
+                            join_type='sequence_itemset',
+                            first_itemset=frozenset(itemset_items),
+                            second_itemset=frozenset(first_items),
+                            idlists=idlists
+                        )
+                        if new_idlist:
+                            candidates.append((new_sequence, new_idlist))
+                        seen_sequences.add(sequence_tuple)
+            
+            # Itemset -> Single Item
+            if k == 3:
+                for itemset, _ in itemsets:
+                    if len(itemset) >= 2:
+                        itemset_items = sorted(itemset)
+                        for single_item in single_items:
+                            new_sequence = (itemset, single_item)
+                            sequence_tuple = new_sequence
+                            if sequence_tuple not in seen_sequences:
+                                new_idlist = join_idlists(
+                                    idlists[itemset_items[0]], None,
+                                    join_type='sequence_itemset',
+                                    first_itemset=frozenset(itemset_items),
+                                    second_itemset=frozenset([single_item]),
+                                    idlists=idlists
+                                )
+                                if new_idlist:
+                                    candidates.append((new_sequence, new_idlist))
+                                seen_sequences.add(sequence_tuple)
 
         return candidates, None
     except Exception as e:
         return None, f"Error in generating candidate {k}-sequences: {str(e)}"
 
-def filter_frequent_sequences(candidates, min_support, total_sequences):
-    """Filter candidates to get frequent sequences."""
+def filter_frequent_sequences(candidates, min_support, transactions_df):
+    """Filter candidates to get frequent sequences using transaction table."""
     try:
         frequent_sequences = []
         seen_patterns = set()
         for pattern, idlist in candidates:
-            support = calculate_support(idlist, total_sequences)
+            support = calculate_support(pattern, transactions_df)
             if support >= min_support:
                 pattern_key = pattern if isinstance(pattern, tuple) else tuple(sorted(pattern))
                 if pattern_key not in seen_patterns:
-                    frequent_sequences.append((pattern, support * total_sequences))
+                    frequent_sequences.append((pattern, support * transactions_df['Customer ID (SID)'].nunique()))
                     seen_patterns.add(pattern_key)
         return frequent_sequences, None
     except Exception as e:
@@ -171,7 +349,7 @@ def format_pattern(pattern):
     if isinstance(pattern, frozenset):
         return f"{{{', '.join(sorted(pattern))}}}"
     elif isinstance(pattern, tuple):
-        return f"<{' -> '.join(pattern)}>"
+        return f"<{' -> '.join([format_pattern(p) if isinstance(p, frozenset) else p for p in pattern])}>"
     return str(pattern)
 
 def get_pattern_length(pattern):
@@ -179,7 +357,7 @@ def get_pattern_length(pattern):
     if isinstance(pattern, frozenset):
         return len(pattern)
     elif isinstance(pattern, tuple):
-        return len(pattern)
+        return sum(1 if isinstance(p, str) else len(p) for p in pattern)
     return 1
 
 def run_spade_analysis(df, min_support):
@@ -200,8 +378,7 @@ def run_spade_analysis(df, min_support):
         if error:
             return None, None, None, error
         
-        total_sequences = vertical_df['SID'].nunique()
-        frequent_1, error = generate_1_sequences(idlists, min_support, total_sequences)
+        frequent_1, error = generate_1_sequences(transactions_df, min_support)
         if error:
             return None, None, None, error
 
@@ -214,18 +391,18 @@ def run_spade_analysis(df, min_support):
         all_frequent_by_level = {1: frequent_1}
         
         detailed_results = {
-            "vertical_format_sample": vertical_df.head(10),
+            "vertical_format_sample": vertical_df,
             "transactions": transactions_df,
-            "total_sequences": total_sequences,
+            "total_sequences": transactions_df['Customer ID (SID)'].nunique(),
             "min_support": min_support,
             "frequent_1": frequent_1_df,
-            "candidates": [],  # Store candidates as a list of (k, df) tuples
-            "frequent": []     # Store frequent sequences as a list of (k, df) tuples
+            "candidates": [],
+            "frequent": []
         }
 
         k = 2
         while True:
-            candidates_k, error = generate_candidate_k_sequences(all_frequent_by_level.get(k-1, []), k, idlists)
+            candidates_k, error = generate_candidate_k_sequences(all_frequent_by_level.get(k-1, []), k, idlists, transactions_df)
             if error:
                 return None, None, None, error
             
@@ -233,12 +410,12 @@ def run_spade_analysis(df, min_support):
                 break
                 
             candidates_df = pd.DataFrame([
-                (format_pattern(seq), len(idlist))
+                (format_pattern(seq), len(set(sid for sid, _ in idlist)))
                 for seq, idlist in sorted(candidates_k, key=lambda x: str(x[0]))
             ], columns=["Pattern", "ID-List Length"])
             detailed_results["candidates"].append((k, candidates_df))
             
-            frequent_k, error = filter_frequent_sequences(candidates_k, min_support, total_sequences)
+            frequent_k, error = filter_frequent_sequences(candidates_k, min_support, transactions_df)
             if error:
                 return None, None, None, error
 
