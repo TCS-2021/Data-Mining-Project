@@ -1,19 +1,19 @@
 import streamlit as st
-import sys
-import os
 import pandas as pd
+import os
 import time
 from collections import defaultdict
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from Backend.gspan import run_gspan_analysis, construct_dfs_code, load_graphs_from_json
-from Backend.apriori_graph import parse_graph_file, apriori_graph_mining
-from Backend.gsp import preprocess_sequences_ordered, gsp_algorithm
-from Backend.apriori import run_apriori_analysis
-from Backend.fp_growth import run_fp_growth_analysis  
+
+# Relative imports for Backend modules
+from ..Backend.gspan import run_gspan_analysis, construct_dfs_code, load_graphs_from_json
+from ..Backend.apriori_graph import parse_graph_file, apriori_graph_mining
+from ..Backend.gsp import preprocess_sequences_ordered, gsp_algorithm
+from ..Backend.apriori import run_apriori_analysis
+from ..Backend.fp_growth import run_fp_growth_analysis
 
 def apriori_graph_mining_app():
     st.title("Apriori-Based Graph Mining")
-    uploaded_file = st.file_uploader("Upload your graph dataset file ", type=['txt'], key="apriori_file")
+    uploaded_file = st.file_uploader("Upload your graph dataset file", type=['txt'], key="apriori_file")
     if uploaded_file is not None:
         graphs = parse_graph_file(uploaded_file)
         st.write(f"Number of graphs loaded: {len(graphs)}")

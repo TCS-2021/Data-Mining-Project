@@ -5,42 +5,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 
-from backend import generate_data_cubes, process_download
-
-# Set page configuration and custom CSS styling
-st.set_page_config(layout="wide")
-
-st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap');
-
-    html, body {
-        background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
-        font-family: 'Montserrat', sans-serif;
-        color: #333;
-    }
-    .main-container {
-        background-color: #fff;
-        border-radius: 10px;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-        padding: 2rem;
-        margin: 1rem;
-    }
-    .css-1e5imcs, .css-1d391kg {
-        background-color: #ffffff !important;
-        border-radius: 8px;
-        box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
-        padding: 1rem;
-    }
-    .css-1aumxhk {
-        font-size: 1.2rem;
-        font-weight: 600;
-    }
-    .css-1d391kg .stTabs {
-        background-color: #fff;
-    }
-    </style>
-""", unsafe_allow_html=True)
+from .backend import generate_data_cubes, process_download
 
 def load_data():
     """
@@ -347,6 +312,39 @@ def main():
       2. Drill-Down and Roll-Up
       3. Batch Processing
     """
+    # Apply custom CSS styling
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap');
+
+    html, body {
+        background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+        font-family: 'Montserrat', sans-serif;
+        color: #333;
+    }
+    .main-container {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        margin: 1rem;
+    }
+    .css-1e5imcs, .css-1d391kg {
+        background-color: #ffffff !important;
+        border-radius: 8px;
+        box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+        padding: 1rem;
+    }
+    .css-1aumxhk {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    .css-1d391kg .stTabs {
+        background-color: #fff;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.title("Data Warehouse & Cube Generator")
 
     # Load data from CSV file
