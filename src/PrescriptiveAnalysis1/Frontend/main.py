@@ -10,6 +10,7 @@ from ..Backend.apriori_graph import parse_graph_file, apriori_graph_mining
 from ..Backend.gsp import preprocess_sequences_ordered, gsp_algorithm
 from ..Backend.apriori import run_apriori_analysis
 from ..Backend.fp_growth import run_fp_growth_analysis
+from ..Backend.spade import preprocess_data_vertical, get_transaction_table, run_spade_analysis, format_pattern, get_pattern_length
 
 def apriori_graph_mining_app():
     st.title("Apriori-Based Graph Mining")
