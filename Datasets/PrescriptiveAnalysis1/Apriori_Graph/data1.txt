@@ -1,0 +1,18 @@
+# Graph 1
+A B
+B C
+A D
+B E
+C E
+C F
+# Graph 2
+A B
+B C
+A D
+B E
+# Graph 3
+A C
+C D
+B E
+E F
+A F

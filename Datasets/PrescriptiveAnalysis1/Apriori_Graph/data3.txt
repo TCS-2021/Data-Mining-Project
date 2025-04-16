@@ -1,0 +1,32 @@
+# Graph 1
+A B
+B C
+A D
+B E
+C F
+D E
+E F
+# Graph 2
+A B
+B C
+A D
+B E
+C F
+D E
+E F
+# Graph 3
+A B
+B C
+C F
+E F
+F G
+G H
+H I
+# Graph 4
+A B
+B C
+A D
+B E
+C F
+D E
+E F

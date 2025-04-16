@@ -1,0 +1,6 @@
+ID,Category,Score,Age
+A101,High,90.0,25.0
+A102,Low,,30.0
+A103,Medium,85.0,
+A104,High,,28.0
+A105,Low,88.0,35.0
