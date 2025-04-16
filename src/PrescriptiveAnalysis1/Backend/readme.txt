@@ -117,3 +117,21 @@ File: "groceries_own.csv"
 Random Dataset 
 Min Support = 0.2 / 0.3 / 0.4
 ----------------------------------------------------------------------------------------------------
+
+
+
+-SPADE
+----------------------------------------------------------------------------------------------------
+File: "example2.csv"
+Example Question given in Sir PPT
+Min Support = 0.5
+(Answer cross-checked)
+
+File: "groceries_own.csv"
+Random Dataset (same as used for GSP) 
+Min Support = 0.3
+(Answer cross-checked)
+
+The file must have columns named:
+"INVOICENO", "PRODUCTNAME"
+----------------------------------------------------------------------------------------------------
