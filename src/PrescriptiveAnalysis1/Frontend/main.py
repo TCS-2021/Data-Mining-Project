@@ -1,15 +1,15 @@
 import streamlit as st
-import sys
-import os
 import pandas as pd
+import os
+import time
 from collections import defaultdict
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from Backend.gspan import run_gspan_analysis, construct_dfs_code, load_graphs_from_json
-from Backend.apriori_graph import parse_graph_file, apriori_graph_mining
-from Backend.gsp import preprocess_sequences_ordered, gsp_algorithm
-from Backend.apriori import run_apriori_analysis
-from Backend.fp_growth import run_fp_growth_analysis
-from Backend.spade import preprocess_data_vertical, get_transaction_table, run_spade_analysis, format_pattern, get_pattern_length
+
+# Relative imports for Backend modules
+from ..Backend.gspan import run_gspan_analysis, construct_dfs_code, load_graphs_from_json
+from ..Backend.apriori_graph import parse_graph_file, apriori_graph_mining
+from ..Backend.gsp import preprocess_sequences_ordered, gsp_algorithm
+from ..Backend.apriori import run_apriori_analysis
+from ..Backend.fp_growth import run_fp_growth_analysis
 
 def apriori_graph_mining_app():
     st.title("Apriori-Based Graph Mining")

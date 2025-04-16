@@ -1,3 +1,5 @@
+#backend.py
+
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
@@ -49,22 +51,27 @@ def preprocess_data(df, target_col=None):
 def determine_problem_type(y):
     if y is None:
         return "clustering"
-    if len(np.unique(y)) > 20 or pd.api.types.is_float_dtype(y):
-        return "regression"
-    return "classification"
+    if pd.api.types.is_object_dtype(y) or len(np.unique(y)) <= 20:
+        return "classification"
+    return "regression"
 
 
 def apply_pca(X, n_components=2):
+    n_components = min(n_components, X.shape[1])
     pca = PCA(n_components=n_components)
     return pca.fit_transform(X)
 
 
-def train_model(X, y, model_type, problem_type):
+def train_model(X, y, model_type, problem_type, hyperparams=None):
+    hyperparams = hyperparams or {}
+
     if problem_type == "clustering":
         if model_type == "DBSCAN":
-            model = DBSCAN(eps=0.5, min_samples=5)
+            model = DBSCAN(**hyperparams)
         elif model_type == "Spectral Clustering":
-            model = SpectralClustering(n_clusters=3, affinity='nearest_neighbors')
+            model = SpectralClustering(**hyperparams)
+        else:
+            raise ValueError("Unsupported clustering model.")
 
         labels = model.fit_predict(X)
         metrics = {
@@ -74,28 +81,36 @@ def train_model(X, y, model_type, problem_type):
         }
         return metrics
 
+    # For supervised learning
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-    if problem_type == "regression":
-        model_map = {
-            "Linear Regression": LinearRegression(),
-            "Decision Tree Regressor": DecisionTreeRegressor(),
-            "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42),
-            "SVM Regressor": SVR(),
-            "AdaBoost": AdaBoostRegressor(n_estimators=100, random_state=42),
-            "Lasso": Lasso(alpha=0.1),
-            "Ridge": Ridge(alpha=0.1)
+    model_classes = {
+        "regression": {
+            "Linear Regression": LinearRegression,
+            "Decision Tree Regressor": DecisionTreeRegressor,
+            "Random Forest": RandomForestRegressor,
+            "SVM Regressor": SVR,
+            "AdaBoost": AdaBoostRegressor,
+            "Lasso": Lasso,
+            "Ridge": Ridge
+        },
+        "classification": {
+            "Logistic Regression": LogisticRegression,
+            "Decision Tree Classifier": DecisionTreeClassifier,
+            "Random Forest": RandomForestClassifier,
+            "SVM Classifier": SVC,
+            "Naive Bayes": GaussianNB
         }
-    else:
-        model_map = {
-            "Logistic Regression": LogisticRegression(),
-            "Decision Tree Classifier": DecisionTreeClassifier(),
-            "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
-            "SVM Classifier": SVC(),
-            "Naive Bayes": GaussianNB()
-        }
+    }
 
-    model = model_map.get(model_type)
+    model_map = model_classes.get(problem_type)
+    if not model_map or model_type not in model_map:
+        raise ValueError("Unsupported model type or problem type.")
+
+    # Instantiate model with custom hyperparameters
+    model_class = model_map[model_type]
+    model = model_class(**hyperparams)
+
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
 
@@ -103,11 +118,11 @@ def train_model(X, y, model_type, problem_type):
         return {
             "Model": model_type,
             "Accuracy": accuracy_score(y_test, y_pred),
-            "Precision": precision_score(y_test, y_pred, average="weighted"),
-            "Recall": recall_score(y_test, y_pred, average="weighted"),
-            "F1": f1_score(y_test, y_pred, average="weighted")
+            "Precision": precision_score(y_test, y_pred, average="weighted", zero_division=0),
+            "Recall": recall_score(y_test, y_pred, average="weighted", zero_division=0),
+            "F1": f1_score(y_test, y_pred, average="weighted", zero_division=0)
         }
-    else:
+    else:  # regression
         return {
             "Model": model_type,
             "MAE": mean_absolute_error(y_test, y_pred),
