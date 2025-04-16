@@ -76,7 +76,7 @@ class Producer:
                 event = self.generate_event()
                 self.producer.send('shopping_events', event)
                 self.logger.info(f"Sent: {event}")
-                time.sleep(.2)  # Simulate near real-time events
+                time.sleep(2)  # Simulate near real-time events
 
         except KeyboardInterrupt:
             self.logger.info("Producer stopped by user.")

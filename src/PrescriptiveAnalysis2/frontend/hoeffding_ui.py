@@ -3,6 +3,7 @@ import subprocess
 import time
 import os
 import glob
+import shutil
 from PIL import Image
 import pandas as pd
 
@@ -11,9 +12,9 @@ KAFKA_HOME = "C:/kafka_2.13-3.9.0"  # Update this path if needed
 TOPIC_NAME = "shopping_events"
 
 # Paths (keep relative as in original)
-DATA_DIR = './streamlit_data/'
+DATA_DIR = './src/PrescriptiveAnalysis2/streamlit_data/'
 TREE_DIR = os.path.join(DATA_DIR, 'tree')
-EVENTS_DIR = os.path.join(DATA_DIR, 'events')
+EVENTS_DIR = os.path.join(DATA_DIR, 'hoeff_events')
 
 # Create directories if they don't exist
 os.makedirs(TREE_DIR, exist_ok=True)
@@ -44,6 +45,35 @@ if "last_tree_refresh" not in st.session_state:
 if "last_data_refresh" not in st.session_state:
     st.session_state.last_data_refresh = time.time()
 
+def clear_directories():
+    """Clear contents of TREE_DIR and EVENTS_DIR"""
+    try:
+        # Clear tree directory
+        for filename in os.listdir(TREE_DIR):
+            file_path = os.path.join(TREE_DIR, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                st.error(f'Failed to delete {file_path}. Reason: {e}')
+        
+        # Clear events directory
+        for filename in os.listdir(EVENTS_DIR):
+            file_path = os.path.join(EVENTS_DIR, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                st.error(f'Failed to delete {file_path}. Reason: {e}')
+        
+        st.success("Cleared all data files")
+    except Exception as e:
+        st.error(f"Error clearing directories: {e}")
+
 def launch_background(command, process_key=None):
     """Launch a background process and store reference if needed"""
     if isinstance(command, list):
@@ -71,24 +101,30 @@ def start_kafka_server():
 def create_topic():
     """Create Kafka topic"""
     st.info("Creating Kafka topic...")
-    subprocess.call(TOPIC_CMD, shell=True)
+    try:
+        result = subprocess.run(TOPIC_CMD, shell=True, capture_output=True, text=True)
+        if result.returncode == 0:
+            st.success(f"Topic '{TOPIC_NAME}' created successfully")
+        else:
+            st.warning(f"Topic creation may have failed: {result.stderr}")
+    except Exception as e:
+        st.warning(f"Topic creation may have failed: {e}")
     time.sleep(2)
-    st.success(f"Topic '{TOPIC_NAME}' created successfully")
 
 def start_producer():
     """Start the producer script"""
     st.info("Starting Kafka Producer...")
-    processes['producer'] = launch_background(['python', 'backend/producer.py'])
+    processes['producer'] = launch_background(['python', 'src/PrescriptiveAnalysis2/backend/producer.py'])
     st.success("Producer started successfully")
 
 def start_consumer():
     """Start the consumer script"""
     st.info("Starting Kafka Consumer...")
-    processes['consumer'] = launch_background(['python', 'backend/consumer.py'])
+    processes['consumer'] = launch_background(['python', 'src/PrescriptiveAnalysis2/backend/consumer.py'])
     st.success("Consumer started successfully")
 
 def stop_services():
-    """Stop all running services"""
+    """Stop all running services and clear data"""
     st.session_state.running = False
     for name, process in processes.items():
         if process:
@@ -98,16 +134,20 @@ def stop_services():
             except:
                 pass
             processes[name] = None
-    st.success("All services stopped successfully")
+    
+    # Clear the data directories
+    clear_directories()
+    st.success("All services stopped and data cleared successfully")
 
 def start_all_services():
     """Start the complete pipeline"""
-    st.session_state.running = True
-    start_zookeeper()
-    start_kafka_server()
-    create_topic()
-    start_producer()
-    start_consumer()
+    if not st.session_state.running:
+        st.session_state.running = True
+        start_zookeeper()
+        start_kafka_server()
+        create_topic()
+        start_producer()
+        start_consumer()
 
 # UI Controls
 st.subheader("")
@@ -131,25 +171,21 @@ with col1:
 with col2:
     st.subheader("🌳 Hoeffding Tree Visualization")
     tree_placeholder = st.empty()
+    st.subheader("📉 Model Accuracy")
     accuracy_placeholder = st.empty()
-
-# Sidebar for status and diagnostics
-st.sidebar.subheader("Pipeline Status")
-process_status = st.sidebar.empty()
-diagnostics = st.sidebar.empty()
 
 def get_recent_event_data():
     """Get the most recent event data from CSV files"""
     try:
         csv_files = glob.glob(os.path.join(EVENTS_DIR, "*.csv"))
         if not csv_files:
-            diagnostics.warning("No event CSV files found in ./streamlit_data/events/")
+            st.warning("No event CSV files found in ./streamlit_data/hoeff_events/")
             return None
         csv_files.sort(key=os.path.getmtime, reverse=True)
         df = pd.read_csv(csv_files[0])
         return df
     except Exception as e:
-        diagnostics.error(f"Error loading event data: {e}")
+        st.error(f"Error loading event data: {e}")
         return None
 
 def get_latest_tree_image():
@@ -157,12 +193,12 @@ def get_latest_tree_image():
     try:
         png_files = glob.glob(os.path.join(TREE_DIR, "*.png"))
         if not png_files:
-            diagnostics.warning("No tree PNG files found in ./streamlit_data/tree/")
+            st.warning("No tree PNG files found in ./streamlit_data/tree/")
             return None
         png_files.sort(key=os.path.getmtime, reverse=True)
         return Image.open(png_files[0])
     except Exception as e:
-        diagnostics.error(f"Error loading tree image: {e}")
+        st.error(f"Error loading tree image: {e}")
         return None
 
 def get_latest_accuracy():
@@ -170,7 +206,7 @@ def get_latest_accuracy():
     try:
         acc_file = os.path.join(DATA_DIR, 'accuracy.txt')
         if not os.path.exists(acc_file):
-            diagnostics.warning("Accuracy file not found at ./streamlit_data/accuracy.txt")
+            st.warning("Accuracy file not found at ./streamlit_data/accuracy.txt")
             return None
         with open(acc_file, 'r') as f:
             acc_text = f.read().strip()
@@ -178,7 +214,7 @@ def get_latest_accuracy():
                 return float(acc_text)
         return None
     except Exception as e:
-        diagnostics.error(f"Error reading accuracy: {e}")
+        st.error(f"Error reading accuracy: {e}")
         return None
 
 def update_status():
@@ -189,10 +225,15 @@ def update_status():
     - Producer: {'✅ Running' if processes['producer'] and processes['producer'].poll() is None else '❌ Stopped'}
     - Consumer: {'✅ Running' if processes['consumer'] and processes['consumer'].poll() is None else '❌ Stopped'}
     """
-    process_status.markdown(status_text)
+    st.sidebar.markdown(status_text)
 
-# Main UI loop
-if True or st.session_state.running:
+# Sidebar for status
+st.sidebar.subheader("Pipeline Status")
+#update_status()
+
+# Main UI logic
+if st.session_state.running:
+    # Update UI when pipeline is running
     update_status()
     
     # Update event data
@@ -217,8 +258,10 @@ if True or st.session_state.running:
         accuracy_placeholder.warning("Waiting for accuracy data...")
     
     time.sleep(2)  # Update every 2 seconds
-    st.rerun()  # Force Streamlit to rerun the script
+    st.rerun()  # Refresh UI
 else:
+    # Display placeholders when pipeline is not running
+    update_status()
     events_placeholder.info("Start the pipeline to see recent events.")
     tree_placeholder.info("Start the pipeline to see the tree visualization.")
     accuracy_placeholder.info("Start the pipeline to see model accuracy.")

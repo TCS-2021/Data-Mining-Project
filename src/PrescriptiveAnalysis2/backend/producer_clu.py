@@ -30,7 +30,6 @@ while time_of_day < 1440:
         'occupancy': generate_occupancy(time_of_day)
     }
     print(f"Produced: {data}")
-#    print("dsfsdf")
     producer.send(topic, value=data)
-    time.sleep(1)  # Simulate streaming every second (10 minutes in simulation)
+    time.sleep(2)  # Simulate streaming every second (10 minutes in simulation)
     time_of_day += 10

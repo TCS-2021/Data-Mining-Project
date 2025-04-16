@@ -32,7 +32,7 @@ class Consumer:
 
         # Initialize Hoeffding Tree model
         self.model = tree.HoeffdingTreeClassifier(
-            grace_period=100,
+            grace_period=10,
             delta=0.99,
             nominal_attributes=[
                 f'product_category_{cat}' for cat in self.product_categories
@@ -48,9 +48,9 @@ class Consumer:
         self.sample_count = 0
         
         # Set up data directory
-        self.data_dir = './streamlit_data/'
+        self.data_dir = './src/PrescriptiveAnalysis2/streamlit_data/'
         self.tree_dir = os.path.join(self.data_dir, 'tree')
-        self.events_dir = os.path.join(self.data_dir, 'events')
+        self.events_dir = os.path.join(self.data_dir, 'hoeff_events')
         
         # Create directories
         os.makedirs(self.data_dir, exist_ok=True)
