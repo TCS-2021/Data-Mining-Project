@@ -1,0 +1,96 @@
+timestamp,user_id,event_type,session_duration,product_category,user_total_purchases,purchase,prediction
+2025-04-17 00:54:45,user_0179,add_to_cart,high,fashion,medium,Yes,N/A
+2025-04-17 00:54:47,user_0099,click,high,fashion,medium,Yes,Yes
+2025-04-17 00:54:49,user_0020,add_to_cart,low,books,medium,No,Yes
+2025-04-17 00:54:51,user_0086,view,low,books,high,No,Yes
+2025-04-17 00:54:53,user_0170,add_to_cart,high,books,medium,Yes,Yes
+2025-04-17 00:54:55,user_0109,add_to_cart,low,electronics,medium,Yes,No
+2025-04-17 00:54:57,user_0140,click,high,home,high,Yes,Yes
+2025-04-17 00:54:59,user_0137,add_to_cart,low,home,medium,Yes,Yes
+2025-04-17 00:55:01,user_0072,add_to_cart,low,books,few,No,Yes
+2025-04-17 00:55:03,user_0171,click,low,electronics,few,No,Yes
+2025-04-17 00:55:05,user_0050,add_to_cart,low,fashion,high,No,No
+2025-04-17 00:55:07,user_0177,add_to_cart,low,toys,very few,No,Yes
+2025-04-17 00:55:09,user_0120,click,low,fashion,very few,No,No
+2025-04-17 00:55:11,user_0026,add_to_cart,high,electronics,very few,No,No
+2025-04-17 00:55:13,user_0049,add_to_cart,high,electronics,medium,Yes,Yes
+2025-04-17 00:55:15,user_0099,view,high,books,medium,Yes,Yes
+2025-04-17 00:55:17,user_0154,click,medium,books,high,No,No
+2025-04-17 00:55:19,user_0143,add_to_cart,high,home,medium,Yes,No
+2025-04-17 00:55:21,user_0023,view,high,electronics,very few,No,No
+2025-04-17 00:55:23,user_0082,view,high,books,medium,Yes,Yes
+2025-04-17 00:55:25,user_0009,add_to_cart,medium,home,medium,Yes,Yes
+2025-04-17 00:55:27,user_0196,add_to_cart,low,toys,high,No,Yes
+2025-04-17 00:55:29,user_0008,view,medium,home,very few,No,No
+2025-04-17 00:55:31,user_0111,click,high,electronics,few,Yes,No
+2025-04-17 00:55:33,user_0121,click,low,electronics,high,No,No
+2025-04-17 00:55:35,user_0192,click,high,fashion,few,Yes,No
+2025-04-17 00:55:37,user_0041,click,high,electronics,high,Yes,No
+2025-04-17 00:55:39,user_0106,add_to_cart,high,books,medium,Yes,Yes
+2025-04-17 00:55:41,user_0184,view,medium,books,high,No,No
+2025-04-17 00:55:43,user_0132,click,medium,fashion,high,Yes,No
+2025-04-17 00:55:45,user_0043,view,low,toys,medium,No,Yes
+2025-04-17 00:55:47,user_0006,view,high,fashion,medium,Yes,Yes
+2025-04-17 00:55:49,user_0164,view,high,electronics,medium,Yes,Yes
+2025-04-17 00:55:51,user_0113,view,medium,fashion,medium,No,Yes
+2025-04-17 00:55:53,user_0197,add_to_cart,medium,toys,high,Yes,No
+2025-04-17 00:55:55,user_0104,add_to_cart,high,toys,medium,Yes,Yes
+2025-04-17 00:55:57,user_0008,view,high,books,very few,No,No
+2025-04-17 00:55:59,user_0118,add_to_cart,medium,books,very few,No,No
+2025-04-17 00:56:01,user_0163,view,high,books,medium,Yes,Yes
+2025-04-17 00:56:03,user_0113,view,medium,toys,medium,No,No
+2025-04-17 00:56:05,user_0044,click,medium,toys,high,Yes,No
+2025-04-17 00:56:07,user_0087,click,high,home,medium,Yes,Yes
+2025-04-17 00:56:09,user_0179,view,medium,home,medium,No,No
+2025-04-17 00:56:11,user_0032,view,high,electronics,few,No,No
+2025-04-17 00:56:13,user_0108,add_to_cart,high,fashion,high,Yes,No
+2025-04-17 00:56:15,user_0053,add_to_cart,high,electronics,high,Yes,Yes
+2025-04-17 00:56:17,user_0012,click,low,toys,high,No,No
+2025-04-17 00:56:19,user_0019,click,low,electronics,high,No,No
+2025-04-17 00:56:21,user_0131,add_to_cart,high,fashion,high,Yes,Yes
+2025-04-17 00:56:23,user_0103,add_to_cart,low,toys,medium,No,No
+2025-04-17 00:56:25,user_0022,view,medium,home,medium,No,Yes
+2025-04-17 00:56:27,user_0187,add_to_cart,high,home,medium,Yes,Yes
+2025-04-17 00:56:29,user_0106,add_to_cart,high,home,medium,Yes,Yes
+2025-04-17 00:56:31,user_0019,click,high,books,high,Yes,Yes
+2025-04-17 00:56:33,user_0044,view,high,home,high,Yes,Yes
+2025-04-17 00:56:35,user_0172,add_to_cart,high,fashion,high,Yes,Yes
+2025-04-17 00:56:37,user_0096,add_to_cart,medium,electronics,medium,Yes,No
+2025-04-17 00:56:39,user_0179,add_to_cart,high,books,medium,Yes,Yes
+2025-04-17 00:56:41,user_0068,click,high,electronics,medium,Yes,Yes
+2025-04-17 00:56:43,user_0173,view,low,electronics,high,No,No
+2025-04-17 00:56:45,user_0149,click,high,books,high,Yes,Yes
+2025-04-17 00:56:47,user_0076,add_to_cart,high,fashion,high,Yes,Yes
+2025-04-17 00:56:49,user_0045,add_to_cart,high,toys,medium,Yes,Yes
+2025-04-17 00:56:51,user_0086,click,high,home,high,Yes,Yes
+2025-04-17 00:56:53,user_0061,view,low,electronics,high,No,No
+2025-04-17 00:56:55,user_0118,view,low,toys,very few,No,No
+2025-04-17 00:56:57,user_0038,view,high,books,high,Yes,Yes
+2025-04-17 00:56:59,user_0098,click,low,fashion,medium,No,No
+2025-04-17 00:57:01,user_0165,click,high,electronics,high,Yes,Yes
+2025-04-17 00:57:03,user_0057,add_to_cart,high,fashion,high,Yes,Yes
+2025-04-17 00:57:05,user_0029,view,medium,fashion,high,No,Yes
+2025-04-17 00:57:07,user_0057,view,high,toys,high,Yes,Yes
+2025-04-17 00:57:09,user_0133,click,high,home,high,Yes,Yes
+2025-04-17 00:57:11,user_0037,click,high,home,high,Yes,Yes
+2025-04-17 00:57:13,user_0143,view,medium,electronics,medium,No,Yes
+2025-04-17 00:57:15,user_0041,click,low,books,high,No,No
+2025-04-17 00:57:17,user_0007,click,high,electronics,medium,Yes,Yes
+2025-04-17 00:57:19,user_0054,view,low,electronics,very few,No,No
+2025-04-17 00:57:21,user_0150,add_to_cart,high,books,medium,Yes,Yes
+2025-04-17 00:57:23,user_0193,click,medium,toys,high,Yes,No
+2025-04-17 00:57:25,user_0183,click,high,electronics,few,No,No
+2025-04-17 00:57:27,user_0134,add_to_cart,low,toys,very few,No,No
+2025-04-17 00:57:29,user_0170,click,high,electronics,medium,Yes,Yes
+2025-04-17 00:57:31,user_0113,add_to_cart,low,home,medium,No,No
+2025-04-17 00:57:33,user_0044,click,medium,home,high,Yes,Yes
+2025-04-17 00:57:35,user_0067,add_to_cart,high,electronics,very few,No,No
+2025-04-17 00:57:37,user_0146,click,high,books,few,Yes,No
+2025-04-17 00:57:39,user_0156,click,high,electronics,medium,Yes,Yes
+2025-04-17 00:57:41,user_0157,view,low,books,very few,No,No
+2025-04-17 00:57:43,user_0066,add_to_cart,low,toys,very few,No,No
+2025-04-17 00:57:45,user_0148,add_to_cart,medium,toys,very few,No,No
+2025-04-17 00:57:47,user_0184,view,low,books,high,No,No
+2025-04-17 00:57:49,user_0032,view,medium,home,few,No,No
+2025-04-17 00:57:51,user_0087,view,low,fashion,medium,No,No
+2025-04-17 00:57:53,user_0187,view,low,home,medium,No,No
